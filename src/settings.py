@@ -11,7 +11,7 @@ SECRET_KEY = "django-insecure-2ky$on7h#9gz@ikp101!mkd_qe#rrk681eykr#0)hi446vs71!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -150,6 +150,7 @@ SESSION_COOKIE_HTTPONLY = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://192.168.123.152",
 ]
 
 # URL de base pour accéder aux fichiers médias
