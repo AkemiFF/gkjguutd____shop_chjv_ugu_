@@ -13,10 +13,14 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'fr_name', 'description', 'created_at', 'updated_at']
         
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
-        fields = ['image']
+        fields = ['image',]
 
+    def get_image(self, obj):
+        return f"{settings.MEDIA_URL}{obj.image.name}"
 
 class ProductSerializerAll(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
@@ -28,6 +32,7 @@ class ProductSerializerAll(serializers.ModelSerializer):
         model = Product
         fields = ['id', 'name', 'description', 'price', 'stock', 'weight', 'length', 'width', 'height', 'sku', 'category', 'images','average_rating','review_count']
 
+    
 User = get_user_model()
 
 class ProductReviewSerializer(serializers.ModelSerializer):
@@ -47,6 +52,19 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id','name', 'fr_name', 'description']  
+      
+      
+
+
+class AddProductReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReview
+        fields = ['product', 'rating', 'title', 'content']
+    
+    def create(self, validated_data):
+
+        return ProductReview.objects.create(**validated_data)  
+    
 class ProductWithSpecSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)

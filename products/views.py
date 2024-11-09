@@ -1,12 +1,80 @@
 # views.py
+from django.db.models import Q, Sum
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+# views.py
 from rest_framework.views import APIView
 
 from .models import Product
 from .serializers import *
+from .serializers import \
+    ProductSerializer  # Assume you have a ProductSerializer
+
+
+class TopSellingProductsView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        # Aggregate the total quantity sold for each product
+        top_products = (
+            Product.objects
+            .annotate(total_sold=Sum('orderitem__quantity'))
+            .order_by('-total_sold')[:8]
+        )
+        
+        # Serialize the top-selling products
+        serializer = ProductSerializerAll(top_products, many=True)
+        return Response(serializer.data)
+
+
+
+class RecommendedProductsView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        top_products = (
+            Product.objects
+            .annotate(total_reviews=Count('reviews'))  # Compter le nombre d'avis
+            .order_by('-total_reviews')[:4]  # Trier par le nombre d'avis, puis prendre les 4 premiers
+        )
+        
+        # Serialize the top-selling products
+        serializer = ProductSerializerAll(top_products, many=True)
+        return Response(serializer.data)
+
+
+class ProductListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializerAll
+
+class ProductSearchView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        query = request.query_params.get('q', '')  # le terme de recherche
+        category = request.query_params.get('category')  # filtre par catégorie
+        min_price = request.query_params.get('min_price')  # filtre par prix minimum
+        max_price = request.query_params.get('max_price')  # filtre par prix maximum
+
+        # Filtre de recherche avec Q pour combiner plusieurs critères
+        products = Product.objects.all()
+        
+        if query:
+            products = products.filter(
+                Q(name__icontains=query) | Q(description__icontains=query)
+            )
+        
+        if category:
+            products = products.filter(category__name__iexact=category)
+        
+        if min_price:
+            products = products.filter(price__gte=min_price)
+        
+        if max_price:
+            products = products.filter(price__lte=max_price)
+
+        serializer = ProductSerializerAll(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProductAdminListView(APIView):
@@ -18,7 +86,7 @@ class ProductAdminListView(APIView):
         return Response(serializer.data)
     
 class CategoryCreateUpdateView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     def post(self, request):
         # Création d'une catégorie
         serializer = CategorySerializer(data=request.data)
@@ -86,10 +154,6 @@ class CategoryListView(APIView):
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-class ProductListView(generics.ListAPIView):
-    permission_classes = [AllowAny]
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializerAll
 
 
 class ProductDetailView(generics.RetrieveAPIView):
@@ -97,3 +161,32 @@ class ProductDetailView(generics.RetrieveAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductWithSpecSerializer
     lookup_field = 'id'
+    
+    
+    def retrieve(self, request, *args, **kwargs):
+        # Récupérer le produit actuel
+        product = self.get_object()
+        serializer = self.get_serializer(product)
+
+        # Récupérer des produits similaires basés sur la catégorie
+        similar_products = Product.objects.filter(category=product.category).exclude(id=product.id)[:4]
+
+        # Sérialiser les produits similaires
+        similar_serializer = ProductSerializerAll(similar_products, many=True)
+
+        # Construire la réponse
+        return Response({
+            'product': serializer.data,
+            'similar_products': similar_serializer.data
+        })
+        
+        
+        
+class ProductReviewCreateView(generics.CreateAPIView):
+    queryset = ProductReview.objects.all()
+    serializer_class = AddProductReviewSerializer
+    permission_classes = [IsAuthenticated] 
+
+    def perform_create(self, serializer):
+        # Associer automatiquement l'utilisateur authentifié à la critique
+        serializer.save(user=self.request.user) 
