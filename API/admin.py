@@ -50,10 +50,14 @@ class OrderItemAdmin(admin.ModelAdmin):
 # users/admin.py
 
 
-from users.models import Client
+from users.models import *
 
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     list_display = ("username", "email", "first_name", "last_name", "date_joined")
     search_fields = ("username", "email")
+
+@admin.register(ShippingAddress)
+class ShippingAddressAdmin(admin.ModelAdmin):
+    list_display = ("client","address")
