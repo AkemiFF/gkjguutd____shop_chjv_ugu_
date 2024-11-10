@@ -12,6 +12,8 @@ class Order(models.Model):
         max_length=20,
         choices=[
             ("pending", "Pending"),
+            ("shipped", "Remis au service de livraison"),  # Ajouté ici
+            ("in_transit", "Arrivé au pays de livraison"),  # Ajouté ici
             ("completed", "Completed"),
             ("cancelled", "Cancelled"),
         ],

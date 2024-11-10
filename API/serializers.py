@@ -2,6 +2,8 @@
 
 from rest_framework import serializers
 
+from .models import *
+
 
 class AdminLoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
@@ -17,3 +19,14 @@ class DashboardSerializer(serializers.Serializer):
     new_clients_percentage_change = serializers.FloatField()
     conversion_rate = serializers.FloatField()
     conversion_rate_percentage_change = serializers.FloatField()
+
+
+class ContactUsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactUs
+        fields = ['name', 'email', 'subject', 'message']
+
+class ContactUsAllSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactUs
+        fields = ['id','name', 'email', 'subject', 'message',"submitted_at"]
