@@ -2,8 +2,11 @@
 from cart.models import Cart, CartItem
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.mail import send_mail
+from django.http import JsonResponse
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -231,3 +234,128 @@ class UpdateShippingInfoView(APIView):
             return Response(serializer.data, status=status_code)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        data = request.data
+        current_password = data.get("current_password")
+        new_password = data.get("new_password")
+        confirm_password = data.get("confirm_password")
+
+        # Vérifiez que tous les champs sont présents
+        if not current_password or not new_password or not confirm_password:
+            return Response({"detail": "Tous les champs sont obligatoires."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifiez que le mot de passe actuel est correct
+        if not check_password(current_password, user.password):
+            return Response({"detail": "Le mot de passe actuel est incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifiez que les nouveaux mots de passe correspondent
+        if new_password != confirm_password:
+            return Response({"detail": "Les nouveaux mots de passe ne correspondent pas."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Modifiez le mot de passe de l'utilisateur
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"detail": "Mot de passe modifié avec succès."}, status=status.HTTP_200_OK)
+    
+    
+    
+
+# Fonction pour envoyer le code de vérification par email
+def send_verification_email(client, verification_code):
+    subject = 'Code de vérification pour la réinitialisation de votre mot de passe'
+    message = f'Votre code de vérification est : {verification_code}. Il est valable pendant 10 minutes.'
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [client.email])
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    # Vérifier que l'email est fourni
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'L\'email est requis.'}, status=400)
+    
+    # Vérifier si l'email appartient à un client
+    try:
+        client = Client.objects.get(email=email)
+    except Client.DoesNotExist:
+        return Response({'error': 'Cet email n\'est pas associé à un compte.'}, status=400)
+    
+    # Enregistrer le code de vérification dans l'objet client
+    client.generate_verification_code()
+    verification_code = client.verification_code
+    # Envoyer le code de vérification par email
+    send_verification_email(client, verification_code)
+    
+    return Response({'message': 'Un code de vérification a été envoyé à votre email.'})
+
+def get_tokens_for_client(client):
+    refresh = RefreshToken.for_user(client)
+    access_token = str(refresh.access_token)
+    return {
+        'access_token': access_token,
+        'refresh_token': str(refresh),
+    }
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_reset_code(request):
+    # Récupérer l'email et le code de vérification dans la requête
+    email = request.data.get('email')
+    verification_code = request.data.get('verification_code')
+
+    if not email or not verification_code:
+        return Response({'error': 'L\'email et le code de vérification sont requis.'}, status=400)
+
+    # Vérifier si le client existe
+    try:
+        client = Client.objects.get(email=email)
+    except Client.DoesNotExist:
+        return Response({'error': 'Cet email n\'est pas associé à un compte.'}, status=400)
+
+    # Vérifier si le code de vérification correspond
+    if client.verification_code != verification_code:
+        return Response({'error': 'Code de vérification invalide.'}, status=400)
+
+    # Vérifier si le code a expiré (10 minutes de validité)
+    expiration_time = client.verification_code_sent_at + timedelta(minutes=10)
+    if timezone.now() > expiration_time:
+        return Response({'error': 'Le code de vérification a expiré.'}, status=400)
+
+    # Si tout est valide, retourner un message de succès
+ # Générer les tokens
+    tokens = get_tokens_for_client(client)
+
+    # Retourner les tokens
+    return Response({
+        'message': 'Le code de vérification est valide.',
+        'access_token': tokens['access_token'],
+        'refresh_token': tokens['refresh_token'],
+    })
+    
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_password(request):
+    new_password = request.data.get('new_password')
+
+    client = request.user 
+
+    # Si tout est valide, mettre à jour le mot de passe
+    client.password = make_password(new_password)  # Hash du mot de passe avant de le sauvegarder
+    client.save()
+
+    # Réinitialiser le code de vérification après la réinitialisation du mot de passe (optionnel)
+    client.verification_code = ''
+    client.verification_code_sent_at = None
+    client.save()
+
+    # Retourner une réponse de succès
+    return Response({'message': 'Mot de passe réinitialisé avec succès.'})
