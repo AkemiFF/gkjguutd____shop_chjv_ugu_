@@ -1,0 +1,35 @@
+# Django Framework
+django>=4.2,<5.0
+
+# Django REST Framework
+djangorestframework>=3.14,<4.0
+
+# JSON Web Token Authentication
+djangorestframework-simplejwt>=5.2,<6.0
+
+# Middleware pour CORS
+django-cors-headers>=3.14,<4.0
+
+# Gestion des fichiers statiques pour le déploiement
+whitenoise>=6.5,<7.0
+
+# PostgreSQL Database Adapter
+psycopg2-binary>=2.9,<3.0
+
+# Gunicorn pour le déploiement en production
+gunicorn>=20.1,<21.0
+
+# Outils de sécurité
+django-environ>=0.10,<1.0
+
+# Outils supplémentaires pour l'API
+coreapi>=2.3,<3.0
+drf-yasg>=1.21,<2.0  # Swagger documentation
+
+# Tests et développement
+pytest-django>=4.5,<5.0
+pytest>=7.4,<8.0
+
+# Optionnel : Utilisation des WebSockets
+channels>=4.0,<5.0
+channels-redis>=4.1,<5.0
