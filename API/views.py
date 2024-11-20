@@ -19,7 +19,6 @@ from .serializers import *
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def dashboard_stats(request):
-    # Dates pour le mois dernier, la semaine dernière et le mois précédent
     today = timezone.now()
     first_day_of_last_month = today.replace(day=1) - timezone.timedelta(days=1)
     first_day_of_last_month = first_day_of_last_month.replace(day=1)
@@ -81,7 +80,8 @@ def admin_login(request):
             refresh = RefreshToken.for_user(user)
             
             return Response({
-                'is_admin': True,
+                'is_admin': user.is_superuser,
+                'is_manager': user.is_manager,
                 'token': {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token)

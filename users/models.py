@@ -15,7 +15,7 @@ class Client(AbstractUser):
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     verification_code_sent_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
-
+    is_manager = models.BooleanField(_("is manager"), default=False)
     def __str__(self):
         return self.username
 
