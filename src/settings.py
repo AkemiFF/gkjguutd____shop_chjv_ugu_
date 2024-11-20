@@ -2,6 +2,9 @@
 import os
 from pathlib import Path
 
+import dj_database_url
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -12,6 +15,8 @@ SECRET_KEY = "django-insecure-2ky$on7h#9gz@ikp101!mkd_qe#rrk681eykr#0)hi446vs71!
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+
+
 
 
 # Application definition
@@ -88,14 +93,23 @@ WSGI_APPLICATION = "src.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT', default=5432, cast=int),
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -135,6 +149,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -150,14 +165,16 @@ SESSION_COOKIE_HTTPONLY = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://myshoplg.onrender.com",
     "http://192.168.123.152",
     "http://192.168.88.57",
 ]
 CSRF_TRUSTED_ORIGINS = [
-   "http://localhost:3000",
+     "http://localhost:3000",
    "http://127.0.0.1:3000",
-"http://192.168.123.152",
-"http://192.168.88.57",
+    "http://192.168.123.152",
+    "https://myshoplg.onrender.com",
+    "http://192.168.88.57",
 ]
 
 # URL de base pour accéder aux fichiers médias
@@ -165,7 +182,6 @@ MEDIA_URL = '/images/'
 # Dossier où seront stockés les fichiers médias
 MEDIA_ROOT = os.path.join(BASE_DIR, 'images')
 
-from decouple import config
 
 EMAIL_BACKEND = config('EMAIL_BACKEND')
 EMAIL_HOST = config('EMAIL_HOST')
