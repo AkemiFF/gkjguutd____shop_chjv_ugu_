@@ -15,7 +15,12 @@ DEBUG = config('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
 
-
+ALLOWED_POINT = [
+    "http://localhost:3000",
+    "https://myshoplg.onrender.com",
+    "https://shoplg.online",
+    "https://www.shoplg.online",
+]
 
 
 # Application definition
@@ -162,22 +167,8 @@ SESSION_COOKIE_NAME = "sessionid"
 SESSION_COOKIE_HTTPONLY = False
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://myshoplg.onrender.com",
-    "https://shoplg.online",
-    "http://192.168.123.152",
-    "http://192.168.88.57",
-]
-CSRF_TRUSTED_ORIGINS = [
-     "http://localhost:3000",
-   "http://127.0.0.1:3000",
-    "http://192.168.123.152",
-    "https://myshoplg.onrender.com",
-        "https://shoplg.online",
-
-    "http://192.168.88.57",
-]
+CORS_ALLOWED_ORIGINS = ALLOWED_POINT
+CSRF_TRUSTED_ORIGINS = ALLOWED_POINT
 
 # URL de base pour accéder aux fichiers médias
 MEDIA_URL = '/images/'

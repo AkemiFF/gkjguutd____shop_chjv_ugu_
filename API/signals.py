@@ -10,7 +10,6 @@ STATIC_PASSWORD = config('STATIC_PASSWORD')
 # Signal qui s'exécute après la migration de la base de données
 @receiver(post_migrate)
 def create_superuser(sender, **kwargs):
-    # Vérifier si un superutilisateur avec ces informations existe déjà
     User = get_user_model()
     if not User.objects.filter(username=STATIC_USERNAME).exists():
         # Si l'utilisateur n'existe pas, on le crée
