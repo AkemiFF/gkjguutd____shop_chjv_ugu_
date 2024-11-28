@@ -38,6 +38,7 @@ PyJWT==2.8.0
 pyOpenSSL==24.2.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
+python-dotenv==1.0.1
 requests==2.32.3
 rest-framework-simplejwt==0.0.2
 setuptools==68.2.2
