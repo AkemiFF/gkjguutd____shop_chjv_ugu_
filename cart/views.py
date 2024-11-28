@@ -98,7 +98,7 @@ def get_cart_connected_user(request):
 
         # Ajouter les recommandations aux données de réponse
         cart_data["recommended_products"] = recommended_data
-
+        cart_data["cart_id"] = cart.id
         return Response(cart_data, status=status.HTTP_200_OK)
 
     return Response({"message": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
