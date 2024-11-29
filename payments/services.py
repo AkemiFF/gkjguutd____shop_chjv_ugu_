@@ -48,7 +48,7 @@ def initiate_payment(payload):
     try:
         # Faire la requête POST à l'API
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()  # Lève une exception pour les codes d'état HTTP 4xx et 5xx
+        response.raise_for_status() 
 
         # Retourner la réponse JSON de l'API
         return response.json()

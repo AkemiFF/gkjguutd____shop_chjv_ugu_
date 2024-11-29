@@ -1,4 +1,5 @@
 import json
+import os
 
 from cart.models import Cart
 from django.http import JsonResponse
@@ -6,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .services import generate_token, initiate_payment
 
-frontUrl = 'https://shoplg.online'
+frontUrl = os.getenv("FROND_URL")
 # frontUrl = 'https://shoplg.online'
 def get_token(request):
     """Expose l'API pour récupérer un token."""
