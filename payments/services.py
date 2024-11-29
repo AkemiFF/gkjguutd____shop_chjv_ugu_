@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from dotenv import load_dotenv
 
 load_dotenv()
-endpoint ='https://preprod.vanilla-pay.net'
+endpoint = os.getenv("VANILLAPAY_URL")
 # endpoint ='https://api.vanilla-pay.net'
 def generate_token():
     """Appelle l'API Vanilla Pay pour générer un token."""

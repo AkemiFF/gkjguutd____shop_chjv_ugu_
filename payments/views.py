@@ -61,8 +61,8 @@ def init_cart_payment(request):
                 'reference': f"REF{cart.id}{user_id}T{total_price}",
                 'panier': cart.id,
                 'devise': "Euro",
-                'notif_url': f"{frontUrl}/users/cart/api/response/",
-                'redirect_url': f"{frontUrl}/users/profil/"
+                'notif_url': f"{frontUrl}/api/response/pay/",
+                'redirect_url': f"{frontUrl}/users/"
             }
 
             # Initier le paiement
