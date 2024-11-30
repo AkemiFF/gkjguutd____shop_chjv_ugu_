@@ -12,17 +12,18 @@ class Order(models.Model):
         max_length=20,
         choices=[
             ("pending", "Pending"),
-            ("shipped", "Remis au service de livraison"),  # Ajouté ici
-            ("in_transit", "Arrivé au pays de livraison"),  # Ajouté ici
+            ("shipped", "Remis au service de livraison"), 
+            ("in_transit", "Arrivé au pays de livraison"), 
             ("completed", "Completed"),
             ("cancelled", "Cancelled"),
         ],
         default="pending",
     )
+    is_paid = models.BooleanField(default=False)  
+    reference = models.CharField(max_length=100, blank=True, null=True)  
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)

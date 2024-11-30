@@ -25,11 +25,16 @@ class CreateOrderView(APIView):
 
         total_price = sum(item.get_total_price() for item in cart.items.all())
 
-        # Créer la commande
+        
+        reference = request.data.get('reference')  # Obtenir la référence depuis request.data
+
+        # Créer les données de commande
         order_data = {
             'user': request.user.id,
-            'total_price': total_price
+            'total_price': total_price,
+            'reference': reference  # Utiliser la référence extraite de request.data
         }
+
         serializer = OrderSerializer(data=order_data)
         
         if serializer.is_valid():
@@ -40,7 +45,7 @@ class CreateOrderView(APIView):
                     order=order,
                     product=cart_item.product,
                     quantity=cart_item.quantity,
-                    price=cart_item.get_total_price()
+                    price=cart_item.get_total_price(),
                 )
 
             cart.delete()
