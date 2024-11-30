@@ -103,6 +103,64 @@ def get_cart_connected_user(request):
 
     return Response({"message": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_cart_session_user(request):
+    """Récupérer le panier de l'utilisateur, ou créer un nouveau panier pour les utilisateurs anonymes."""
+    
+    # Récupérer le panier en fonction de l'utilisateur connecté ou de la session anonyme
+   
+    session_key = request.session.session_key or request.session.save()
+    cart = get_cart_for_anonymous_user(session_key)
+    
+    if cart:
+        cart_data = {
+            "items": [
+                {
+                    "product_id": item.product.id,
+                    "product_name": item.product.name,
+                    "quantity": item.quantity,
+                    "price": item.product.price,
+                    "description": item.product.description,
+                    "total_price": item.get_total_price(),
+                    "image_url": item.product.images.first().image.url if item.product.images.exists() else None
+                }
+                for item in cart.items.all()
+            ]
+        }
+
+        # Récupérer les catégories des produits dans le panier pour les recommandations
+        product_ids_in_cart = [item.product.id for item in cart.items.all()]
+        categories_in_cart = cart.items.values_list('product__category', flat=True).distinct()
+        
+        # Rechercher 4 produits recommandés dans les mêmes catégories, exclure ceux déjà dans le panier
+        recommended_products = (
+            Product.objects.filter(category__in=categories_in_cart)
+            .exclude(id__in=product_ids_in_cart)
+            .distinct()[:4]
+        )
+
+        # Sérialiser les produits recommandés
+        recommended_data = [
+            {
+                "id": product.id,
+                "name": product.name,
+                "price": product.price,
+                "average_rating": product.average_rating,
+                "review_count": product.review_count,
+                "description": product.description,
+                "images": [{"image": image.image.url} for image in product.images.all()] if product.images.exists() else []
+            }
+            for product in recommended_products
+        ]
+
+        # Ajouter les recommandations aux données de réponse
+        cart_data["recommended_products"] = recommended_data
+        cart_data["cart_id"] = cart.id
+        return Response(cart_data, status=status.HTTP_200_OK)
+
+    return Response({"message": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
+
 @api_view(['POST'])
 @permission_classes([ AllowAny])
 def test_session(request):
