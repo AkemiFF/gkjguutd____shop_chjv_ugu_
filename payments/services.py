@@ -49,9 +49,13 @@ def initiate_payment(payload):
         # Faire la requête POST à l'API
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status() 
+        res =response.json()
+        
+        # res['reference'] = f"REF{payload['cart_id']}{payload['user_id']}T{str(payload['total_price']).replace('.', 'P')}"
+        res['reference'] = payload.get("reference")
 
         # Retourner la réponse JSON de l'API
-        return response.json()
+        return res
 
     except requests.exceptions.HTTPError as http_err:
         return {'error': 'HTTP error occurred', 'details': str(http_err)}
