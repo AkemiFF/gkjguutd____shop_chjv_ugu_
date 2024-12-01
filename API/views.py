@@ -28,13 +28,36 @@ def dashboard_stats(request):
     first_day_of_this_month = today.replace(day=1)
 
     # Calculer le chiffre d'affaires total
-    total_revenue = Order.objects.filter(created_at__month=first_day_of_this_month.month).aggregate(Sum('total_price'))['total_price__sum'] or 0
-    total_revenue_last_month = Order.objects.filter(created_at__month=first_day_of_last_month.month).aggregate(Sum('total_price'))['total_price__sum'] or 0
-    revenue_percentage_change = ((total_revenue - total_revenue_last_month) / total_revenue_last_month * 100) if total_revenue_last_month > 0 else 0
+        
+    # Calcul du revenu total pour ce mois
+    total_revenue = Order.objects.filter(
+        is_paid=True,
+        created_at__month=first_day_of_this_month.month
+    ).aggregate(Sum('total_price'))['total_price__sum'] or 0
 
-    # Nombre total de commandes et nouvelles commandes depuis la semaine dernière
-    total_orders = Order.objects.filter(created_at__gte=first_day_of_this_month).count()
-    total_orders_last_week = Order.objects.filter(created_at__gte=last_week_start).count()
+    # Calcul du revenu total pour le mois dernier
+    total_revenue_last_month = Order.objects.filter(
+        is_paid=True,
+        created_at__month=first_day_of_last_month.month
+    ).aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Pourcentage de changement de revenu
+    revenue_percentage_change = (
+        ((total_revenue - total_revenue_last_month) / total_revenue_last_month * 100)
+        if total_revenue_last_month > 0 else 0
+    )
+
+    # Nombre total de commandes pour ce mois
+    total_orders = Order.objects.filter(
+        is_paid=True,
+        created_at__gte=first_day_of_this_month
+    ).count()
+
+    # Nombre total de commandes depuis la semaine dernière
+    total_orders_last_week = Order.objects.filter(
+        is_paid=True,
+        created_at__gte=last_week_start
+    ).count()
     orders_percentage_change = total_orders - total_orders_last_week
 
     # Nombre total de clients et nouveaux clients depuis le mois dernier
@@ -45,7 +68,7 @@ def dashboard_stats(request):
     # Taux de conversion et son pourcentage par rapport au mois dernier
     total_visits = 1000  # Exemples, vous devrez remplacer cela par vos données réelles sur les visites
     conversion_rate = (total_orders / total_visits) * 100 if total_visits > 0 else 0
-    total_orders_last_month = Order.objects.filter(created_at__month=first_day_of_last_month.month).count()
+    total_orders_last_month = Order.objects.filter( is_paid=True,created_at__month=first_day_of_last_month.month).count()
     conversion_rate_last_month = (total_orders_last_month / total_visits) * 100 if total_visits > 0 else 0
     conversion_rate_percentage_change = conversion_rate - conversion_rate_last_month
 
@@ -115,8 +138,8 @@ def sales_and_orders_data(request):
         end_of_month = start_of_month.replace(month=month % 12 + 1, day=1) - timezone.timedelta(days=1) if month < 12 else today
         
         # Calculer le total des ventes et des commandes pour ce mois
-        monthly_sales = Order.objects.filter(created_at__gte=start_of_month, created_at__lte=end_of_month).aggregate(Sum('total_price'))['total_price__sum'] or 0
-        monthly_orders = Order.objects.filter(created_at__gte=start_of_month, created_at__lte=end_of_month).count()
+        monthly_sales = Order.objects.filter( is_paid=True,created_at__gte=start_of_month, created_at__lte=end_of_month).aggregate(Sum('total_price'))['total_price__sum'] or 0
+        monthly_orders = Order.objects.filter( is_paid=True,created_at__gte=start_of_month, created_at__lte=end_of_month).count()
 
         # Ajouter ces données au tableau
         sales_data.append({

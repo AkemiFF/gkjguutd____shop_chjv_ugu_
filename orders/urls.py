@@ -7,4 +7,5 @@ urlpatterns = [
     path('', UserOrdersView.as_view(), name='user-orders'),
     path('all/', OrderListView.as_view(), name='order-list'),
     path('<int:order_id>/status/', update_order_status, name='update-order-status'),
+    path('<int:order_id>/', OrderDetailsView.as_view(), name='order-details'),
 ]
