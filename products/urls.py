@@ -16,4 +16,5 @@ urlpatterns = [
     path('top-selling/', TopSellingProductsView.as_view(), name='top-selling-products'),
     path('recommended/', RecommendedProductsView.as_view(), name='top-selling-products'),
     path('reviews/add/', ProductReviewCreateView.as_view(), name='create-review'),
+    path('<int:product_id>/delete/', ProductDeleteAPIView.as_view(), name='product-delete'),
 ]

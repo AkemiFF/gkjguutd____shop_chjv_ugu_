@@ -1,5 +1,6 @@
 # views.py
 from django.db.models import Q, Sum
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -9,10 +10,26 @@ from rest_framework.views import APIView
 
 from .models import Product
 from .serializers import *
-from .serializers import \
-    ProductSerializer  # Assume you have a ProductSerializer
+from .serializers import ProductSerializer
 
 
+class ProductDeleteAPIView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def delete(self, request, product_id):
+        product = get_object_or_404(Product, id=product_id)
+        
+        for image in product.images.all():
+            image.image.delete()  
+            image.delete()        
+
+        product.delete()
+
+        return Response(
+            {"message": f"Le produit avec l'ID {product_id} et ses images associées ont été supprimés."},
+            status=status.HTTP_200_OK
+        )
+        
 class TopSellingProductsView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
