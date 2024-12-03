@@ -17,8 +17,6 @@ DEBUG = config('DEBUG')
 ALLOWED_HOSTS = ["*"]
 
 ALLOWED_POINT = [
-    "http://localhost:3000",
-    "https://myshoplg.onrender.com",
     "https://shoplg.online",
     "https://www.shoplg.online",
 ]
@@ -165,13 +163,22 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_NAME = "sessionid"
-SESSION_COOKIE_HTTPONLY = False
+# SESSION_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True 
-
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = ALLOWED_POINT
 CSRF_TRUSTED_ORIGINS = ALLOWED_POINT
+CORS_ORIGIN_REGEX_WHITELIST = [
+    r"^https://.*\.shoplg\.online$",
+]
+if DEBUG:
+    CORS_ALLOWED_ORIGINS += ["http://localhost:3000"]
+    CSRF_TRUSTED_ORIGINS += ["http://localhost:3000"]
+
+CSRF_COOKIE_SECURE = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 # URL de base pour accéder aux fichiers médias
 MEDIA_URL = '/images/'
