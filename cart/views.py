@@ -112,7 +112,7 @@ def get_cart_session_user(request):
    
     session_key = request.session.session_key or request.session.save()
     cart = get_cart_for_anonymous_user(session_key)
-    
+    print(session_key)
     if cart:
         cart_data = {
             "items": [
