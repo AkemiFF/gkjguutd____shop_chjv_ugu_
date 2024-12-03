@@ -32,7 +32,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',
-    'rest_framework_simplejwt',
+    'rest_framework_simplejwt',   
     'corsheaders',
     'payments',
     "API",
@@ -51,7 +51,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
 ]
 
 
@@ -165,7 +164,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_NAME = "sessionid"
 # SESSION_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE= False
 SESSION_COOKIE_SECURE = True 
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
