@@ -1,5 +1,6 @@
 
 import os
+import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -33,7 +34,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'rest_framework',
     'rest_framework_simplejwt',   
-    'corsheaders',
+    'corsheaders',   
+    'celery',
     'payments',
     "API",
     "cart",
@@ -167,20 +169,27 @@ SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE= 'None'
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
-CORS_ALLOWED_ORIGINS = ALLOWED_POINT
+
 CSRF_TRUSTED_ORIGINS = ALLOWED_POINT
 CORS_ORIGIN_REGEX_WHITELIST = [
     r"^https://.*\.shoplg\.online$",
 ]
 
+
+CORS_ALLOWED_ORIGINS = ALLOWED_POINT
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
 if DEBUG:
     CORS_ALLOWED_ORIGINS += ["http://localhost:3000"]
     CSRF_TRUSTED_ORIGINS += ["http://localhost:3000"]
     
-
-CORS_ALLOW_CREDENTIALS = True
-
-
 # URL de base pour accéder aux fichiers médias
 MEDIA_URL = '/images/'
 # Dossier où seront stockés les fichiers médias
@@ -194,3 +203,26 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+
+# CeleryAccess = 'rediss://red-ct84l1t6l47c73ceomkg:tP1nSK0XxFp7vbkEUNMk4JhBZfHpaTzc@oregon-redis.render.com:6379/0'
+CeleryAccess = config('CELERY_ACCESS')
+
+CELERY_BROKER_URL = CeleryAccess
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_RESULT_BACKEND = CeleryAccess
+
+# Ajouter des options SSL pour rediss://
+CELERY_BROKER_USE_SSL = {
+    'ssl_cert_reqs': ssl.CERT_NONE,  # Vous pouvez utiliser CERT_OPTIONAL ou CERT_REQUIRED selon vos besoins
+    'ssl_keyfile': None,             # Si vous avez un fichier de clé SSL, spécifiez-le ici
+    'ssl_certfile': None,            # Si vous avez un fichier de certificat SSL, spécifiez-le ici
+    'ssl_ca_certs': None,            # Si vous avez un fichier CA, spécifiez-le ici
+}
+
+# Options de transport pour Redis
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'ssl_cert_reqs': ssl.CERT_REQUIRED,  # Requiert un certificat SSL valide
+    'ssl_keyfile': None,                 # Si vous avez un fichier de clé SSL, ajoutez-le ici
+    'ssl_certfile': None,                # Si vous avez un fichier de certificat SSL, ajoutez-le ici
+    'ssl_ca_certs': None,                # Si vous avez un fichier CA, ajoutez-le ici
+}
