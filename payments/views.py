@@ -97,7 +97,7 @@ def init_cart_payment(request):
                 'panier': cart.id,
                 'devise': "Euro",
                 'notif_url': f"{backUrl}/payments/webhook/",
-                'redirect_url': f"{frontUrl}/users/"
+                'redirect_url': f"{frontUrl}/users/cart/order-confirmation"
             }
 
             # Initier le paiement
