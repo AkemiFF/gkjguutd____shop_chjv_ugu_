@@ -9,5 +9,7 @@ urlpatterns = [
     path("init-cart-payment/", init_cart_payment, name="init_cart_payment"),
     path("webhook/", handle_payment_notification, name="payment_notification"),    
     path("check/<str:reference>/", CheckOrderPayment.as_view(), name="check_payment"),
+    path("test/", init_test, name="init_test"),
+    path("async-cart-pay/", init_cart_payment2, name="init_test"),
     # path("api/response/pay", views.handle_payment_notification, name="handle_payment_notification"),
 ]

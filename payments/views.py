@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .services import generate_token, initiate_payment
+from .tasks import *
 
 frontUrl = os.getenv("FROND_URL")
 backUrl = os.getenv("BACK_URL")
@@ -68,6 +69,8 @@ def init_cart_payment(request):
     """Expose l'API pour initier un paiement."""
     if request.method == "POST":
         try:
+            start_time = time.time()
+
             # Charger le corps de la requête JSON
             body = json.loads(request.body)
             cart_id = body.get('id')
@@ -77,7 +80,9 @@ def init_cart_payment(request):
                 return JsonResponse({'error': 'Cart ID is required'}, status=400)
 
             # Essayer de récupérer le panier
-            cart = Cart.objects.filter(id=cart_id).first()
+            cart = Cart.objects.filter(id=cart_id).prefetch_related('items__product').first()
+            print(f"Cart query took {time.time() - start_time} seconds")
+
             if cart is None:
                 return JsonResponse({'error': 'Cart not found'}, status=404)
 
@@ -88,6 +93,8 @@ def init_cart_payment(request):
 
             # Calculer le prix total du panier et le convertir en float
             total_price = float(sum(item.get_total_price() for item in cart_items))
+            print(f"Total price calculation took {time.time() - start_time} seconds")
+
             user_id = cart.user.id if cart.user else 0
             ref = f"REF{cart.id}{user_id}T{str(total_price).replace('.', 'P')}"
 
@@ -111,7 +118,12 @@ def init_cart_payment(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
-    
+
+
+
+def init_test(request):
+    test_task.delay("we are we are we are we are we are we are we are we are we")
+    return JsonResponse({"message": "Payment initiation started"})
     
 @csrf_exempt  
 def handle_payment_notification_test(request):
@@ -166,3 +178,38 @@ def handle_payment_notification_test(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+
+
+@csrf_exempt
+async def init_cart_payment2(request):
+    """Expose l'API pour initier un paiement de manière asynchrone."""
+    if request.method == "POST":
+        try:
+            start_time = time.time()
+
+            # Charger le corps de la requête JSON
+            body = json.loads(request.body)
+            cart_id = body.get('id')
+
+            # Vérifier si l'ID du panier est fourni
+            if not cart_id:
+                return JsonResponse({'error': 'Cart ID is required'}, status=400)
+
+            task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)
+
+            # Attendre la fin de la tâche
+            payment_response = task.get(timeout=60)
+            
+            print(f"Cart query took {time.time() - start_time} seconds")
+
+            return JsonResponse(payment_response)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
