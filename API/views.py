@@ -1,6 +1,6 @@
 # views.py
 
-from API.analytics import get_analytics_data
+# from API.analytics import get_analytics_data
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 # views.py
@@ -173,14 +173,14 @@ def get_all_contacts(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class AnalyticsDataView(APIView):
-    permission_classes = [AllowAny]
-    def get(self, request, *args, **kwargs):
-        try:
-            sessions = get_analytics_data()
-            return Response({"sessions": sessions}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# class AnalyticsDataView(APIView):
+#     permission_classes = [AllowAny]
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             sessions = get_analytics_data()
+#             return Response({"sessions": sessions}, status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         
         
