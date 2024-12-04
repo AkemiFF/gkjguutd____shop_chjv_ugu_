@@ -186,6 +186,18 @@ CORS_ALLOW_METHODS = [
     "DELETE",
     "OPTIONS",
 ]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 if DEBUG:
     CORS_ALLOWED_ORIGINS += ["http://localhost:3000"]
     CSRF_TRUSTED_ORIGINS += ["http://localhost:3000"]
@@ -204,7 +216,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
-# CeleryAccess = 'rediss://red-ct84l1t6l47c73ceomkg:tP1nSK0XxFp7vbkEUNMk4JhBZfHpaTzc@oregon-redis.render.com:6379/0'
 CeleryAccess = config('CELERY_ACCESS')
 
 CELERY_BROKER_URL = CeleryAccess
