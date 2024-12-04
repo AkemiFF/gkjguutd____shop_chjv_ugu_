@@ -1,15 +1,18 @@
 # views.py
 
+from API.analytics import get_analytics_data
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 # views.py
 from django.db.models import Count, F, Sum
 from django.utils import timezone
+from orders.models import *
 from orders.models import Order
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import Client
 
@@ -146,7 +149,7 @@ def sales_and_orders_data(request):
             'name': start_of_month.strftime('%b'),  # Ex: Jan, Feb, Mar...
             'sales': monthly_sales,
             'orders': monthly_orders,
-            'visitors': 1000,  # Remplacer par vos données réelles de visites si disponibles
+            'visitors': 50,  # Remplacer par vos données réelles de visites si disponibles
         })
 
     return Response(sales_data, status=status.HTTP_200_OK)
@@ -168,3 +171,68 @@ def get_all_contacts(request):
     contacts = ContactUs.objects.all()
     serializer = ContactUsAllSerializer(contacts, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AnalyticsDataView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request, *args, **kwargs):
+        try:
+            sessions = get_analytics_data()
+            return Response({"sessions": sessions}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+        
+class TopSellingProductView(APIView):
+    permission_classes = [IsAdminUser]
+    def get(self, request, *args, **kwargs):
+        # Filtrer sur les produits vendus uniquement dans les commandes payées
+        top_products = (
+            OrderItem.objects.filter(order__is_paid=True)  # Filtrer par commandes payées
+            .values("product__id", "product__name")
+            .annotate(
+                total_sales=Sum("quantity"),  # Nombre total vendu
+                total_revenue=Sum(F("quantity") * F("price")),  # Revenu total généré
+            )
+            .order_by("-total_sales")[:3]  # Limiter aux 3 meilleurs produits
+        )
+
+        if top_products:
+            data = [
+                {
+                    "product_id": product["product__id"],
+                    "product_name": product["product__name"],
+                    "total_sales": product["total_sales"],
+                    "total_revenue": product["total_revenue"],
+                }
+                for product in top_products
+            ]
+        else:
+            data = {"message": "Aucun produit vendu pour l'instant."}
+
+        return Response(data)
+    
+    
+class RecentOrdersView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request, *args, **kwargs):
+        # Obtenir les 5 commandes les plus récentes
+        recent_orders = (
+            Order.objects.filter(is_paid=True)
+            .select_related("user")
+            .order_by("-created_at")[:5]
+        )
+        # Construire la réponse
+        data = [
+            {
+                "id": order.reference,
+                "customer": order.user.username,
+                "total": order.total_price,
+                "status": order.status,
+            }
+            for order in recent_orders
+        ]
+
+        return Response(data)

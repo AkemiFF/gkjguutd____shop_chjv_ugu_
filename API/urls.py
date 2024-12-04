@@ -17,4 +17,8 @@ urlpatterns = [
     path('dashboard/sales-orders/', sales_and_orders_data, name='sales-orders-data'),
     path('contact-us/', create_contact, name='create_contact'),
     path('contacts/', get_all_contacts, name='get_all_contacts'),
+    path("top-selling-product/", TopSellingProductView.as_view(), name="top-selling-product"),
+    path("recent-orders/", RecentOrdersView.as_view(), name="recent-orders"),
+
+    # path('test/', AnalyticsDataView.as_view(), name='get_al'),
 ]
