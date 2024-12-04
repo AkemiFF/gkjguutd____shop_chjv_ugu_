@@ -58,18 +58,17 @@ class ClientOrderCreateView(APIView):
             
             if session_key:
                 try:
-                    # Récupérer le panier associé à la session (s'il existe)
-                    cart = Cart.objects.get(session=session_key)
-                    cart.user = client  # Associer le panier à l'utilisateur
-                    cart.save()
+                    cart = Cart.objects.filter(session=session_key).first()  
+                    if cart:
+                        cart.user = client
+                        cart.save()
                 except Cart.DoesNotExist:
 
                     cart = Cart.objects.create(user=client, session=request.session)
                 
-            # Créer un token de rafraîchissement et d'accès pour l'utilisateur
+
             refresh = RefreshToken.for_user(client)
 
-            # Retourner les informations nécessaires dans la réponse
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
