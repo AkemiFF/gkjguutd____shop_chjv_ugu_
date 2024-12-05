@@ -44,10 +44,10 @@ INSTALLED_APPS = [
     "users",
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE = [ 
+    'corsheaders.middleware.CorsMiddleware', 
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    'corsheaders.middleware.CorsMiddleware', 
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -171,9 +171,7 @@ CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 
 CSRF_TRUSTED_ORIGINS = ALLOWED_POINT
-CORS_ORIGIN_REGEX_WHITELIST = [
-    r"^https://.*\.shoplg\.online$",
-]
+
 
 
 CORS_ALLOWED_ORIGINS = ALLOWED_POINT
@@ -224,16 +222,54 @@ CELERY_RESULT_BACKEND = CeleryAccess
 
 # Ajouter des options SSL pour rediss://
 CELERY_BROKER_USE_SSL = {
-    'ssl_cert_reqs': ssl.CERT_NONE,  # Vous pouvez utiliser CERT_OPTIONAL ou CERT_REQUIRED selon vos besoins
-    'ssl_keyfile': None,             # Si vous avez un fichier de clé SSL, spécifiez-le ici
-    'ssl_certfile': None,            # Si vous avez un fichier de certificat SSL, spécifiez-le ici
-    'ssl_ca_certs': None,            # Si vous avez un fichier CA, spécifiez-le ici
+    'ssl_cert_reqs': ssl.CERT_NONE,  
+    'ssl_keyfile': None,            
+    'ssl_certfile': None,          
+    'ssl_ca_certs': None,           
 }
 
 # Options de transport pour Redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    'ssl_cert_reqs': ssl.CERT_REQUIRED,  # Requiert un certificat SSL valide
-    'ssl_keyfile': None,                 # Si vous avez un fichier de clé SSL, ajoutez-le ici
-    'ssl_certfile': None,                # Si vous avez un fichier de certificat SSL, ajoutez-le ici
-    'ssl_ca_certs': None,                # Si vous avez un fichier CA, ajoutez-le ici
+    'ssl_cert_reqs': ssl.CERT_REQUIRED, 
+    'ssl_keyfile': None,                 
+    'ssl_certfile': None,               
+    'ssl_ca_certs': None,               
+}
+
+
+ASYNC_TIMEOUT = 25  # seconds
+
+# CORS settings update
+CORS_ALLOW_ALL_ORIGINS = False 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'django-error.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {  # Root logger
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+        'payments': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
 }
