@@ -6,14 +6,16 @@ from pathlib import Path
 
 from decouple import config
 
+CeleryAccess = config('CELERY_ACCESS')
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY =config('DJANGO_SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG')
+
+ASYNC_TIMEOUT = 25  
 
 ALLOWED_HOSTS = ["*"]
 
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     "orders",
     "products",
     "users",
+    "security",
 ]
 
 MIDDLEWARE = [ 
@@ -53,6 +56,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'security.middleware.GlobalExceptionMiddleware',
 ]
 
 
@@ -213,31 +217,50 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+import ssl
 
-CeleryAccess = config('CELERY_ACCESS')
-
+# Configuration du broker pour Celery
 CELERY_BROKER_URL = CeleryAccess
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Configuration du backend des résultats pour Celery
 CELERY_RESULT_BACKEND = CeleryAccess
 
-# Ajouter des options SSL pour rediss://
+# Configurer l'usage de SSL pour les connexions rediss://
 CELERY_BROKER_USE_SSL = {
-    'ssl_cert_reqs': ssl.CERT_NONE,  
-    'ssl_keyfile': None,            
-    'ssl_certfile': None,          
-    'ssl_ca_certs': None,           
+    'ssl_cert_reqs': ssl.CERT_REQUIRED,  # Remplacez par CERT_NONE si vous voulez ignorer la vérification des certificats
+    'ssl_keyfile': None,                 # Chemin vers le fichier de clé SSL si nécessaire
+    'ssl_certfile': None,                # Chemin vers le fichier de certificat SSL si nécessaire
+    'ssl_ca_certs': None,                # Chemin vers les autorités racines pour validation SSL
 }
 
-# Options de transport pour Redis
+# Options supplémentaires pour la gestion des connexions Redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    'ssl_cert_reqs': ssl.CERT_REQUIRED, 
-    'ssl_keyfile': None,                 
-    'ssl_certfile': None,               
-    'ssl_ca_certs': None,               
+    'max_retries': 3,                   
+    'retry_policy': {
+        'interval_start': 0,             # Délai avant la première tentative de reconnexion
+        'interval_step': 0.2,            # Incrément pour les tentatives suivantes
+        'interval_max': 0.5,             # Temps maximum entre les tentatives
+    },
+}
+
+CACHES = {
+    'default': {
+    'BACKEND': 'django_redis.cache.RedisCache',
+    'LOCATION': CeleryAccess,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5, 
+            'SOCKET_TIMEOUT': 5,       
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'TIMEOUT': 300, 
+        'KEY_PREFIX': 'myapp',  
+    }
 }
 
 
-ASYNC_TIMEOUT = 25  # seconds
+
 
 # CORS settings update
 CORS_ALLOW_ALL_ORIGINS = False 
