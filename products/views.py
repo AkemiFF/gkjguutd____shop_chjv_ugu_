@@ -60,7 +60,8 @@ class TopSellingProductsView(APIView):
 
         # Retourner la réponse
         return Response(serializer.data)
-@method_decorator(cache_page(60 * 5), name='dispatch') 
+    
+
 class RecommendedProductsView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
@@ -82,33 +83,6 @@ class RecommendedProductsView(APIView):
 
         return Response(serializer.data)
 
-class RecommendedProductsView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        # Générer une clé de cache unique
-        cache_key = 'recommended_products'
-        
-        # Vérifier si les produits recommandés sont déjà dans le cache
-        top_products = cache.get(cache_key)
-
-        if not top_products:
-            # Si les produits ne sont pas dans le cache, les récupérer depuis la base de données
-            top_products = (
-                Product.objects
-                .annotate(total_reviews=Count('reviews'))
-                .order_by('-total_reviews')[:4]
-            )
-            # Sérialiser les produits
-            serializer = ProductSerializerAll(top_products, many=True)
-            # Mettre les résultats dans le cache pendant 5 minutes
-            cache.set(cache_key, serializer.data, timeout=60 * 5)
-        else:
-            # Si les produits sont déjà en cache, les utiliser directement
-            serializer = ProductSerializerAll(top_products, many=True)
-        
-        # Retourner la réponse
-        return Response(serializer.data)
 
 @method_decorator(cache_page(60 * 5), name='dispatch') 
 class ProductListView(generics.ListAPIView):
