@@ -224,7 +224,6 @@ def get_task_status(request):
     # Récupérer l'état de la tâche
     task_result = AsyncResult(task_id)
     if task_result.state == 'SUCCESS':
-        print(task_result)
         return JsonResponse({'state': task_result.state, 'result': task_result.result})
     elif task_result.state == 'FAILURE':
         return JsonResponse({'state': task_result.state, 'error': str(task_result.result)})
