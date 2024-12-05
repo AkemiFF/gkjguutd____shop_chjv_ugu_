@@ -31,34 +31,63 @@ class ProductDeleteAPIView(APIView):
             {"message": f"Le produit avec l'ID {product_id} et ses images associées ont été supprimés."},
             status=status.HTTP_200_OK
         )
-        
-class TopSellingProductsView(APIView):
-    permission_classes = [AllowAny]
-    def get(self, request):
-        # Aggregate the total quantity sold for each product
-        top_products = (
-            Product.objects
-            .annotate(total_sold=Sum('orderitem__quantity'))
-            .order_by('-total_sold')[:8]
-        )
-        
-        # Serialize the top-selling products
-        serializer = ProductSerializerAll(top_products, many=True)
-        return Response(serializer.data)
 
 
 @method_decorator(cache_page(60 * 5), name='dispatch') 
+class TopSellingProductsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # Vérifier si les résultats sont déjà en cache
+        cache_key = 'top_selling_products'
+        top_products = cache.get(cache_key)
+
+        if not top_products:
+            # Si les produits ne sont pas dans le cache, les récupérer depuis la base de données
+            top_products = (
+                Product.objects
+                .annotate(total_sold=Sum('orderitem__quantity'))
+                .order_by('-total_sold')[:8]
+            )
+            # Sérialiser les résultats
+            serializer = ProductSerializerAll(top_products, many=True)
+
+            # Mettre en cache les résultats pendant 5 minutes
+            cache.set(cache_key, serializer.data, timeout=60 * 5)
+        else:
+            # Si les produits sont dans le cache, les renvoyer tels quels
+            serializer = ProductSerializerAll(top_products, many=True)
+
+        # Retourner la réponse
+        return Response(serializer.data)
+
+
 class RecommendedProductsView(APIView):
     permission_classes = [AllowAny]
+
     def get(self, request):
-        top_products = (
-            Product.objects
-            .annotate(total_reviews=Count('reviews'))  # Compter le nombre d'avis
-            .order_by('-total_reviews')[:4]  # Trier par le nombre d'avis, puis prendre les 4 premiers
-        )
+        # Générer une clé de cache unique
+        cache_key = 'recommended_products'
         
-        # Serialize the top-selling products
-        serializer = ProductSerializerAll(top_products, many=True)
+        # Vérifier si les produits recommandés sont déjà dans le cache
+        top_products = cache.get(cache_key)
+
+        if not top_products:
+            # Si les produits ne sont pas dans le cache, les récupérer depuis la base de données
+            top_products = (
+                Product.objects
+                .annotate(total_reviews=Count('reviews'))
+                .order_by('-total_reviews')[:4]
+            )
+            # Sérialiser les produits
+            serializer = ProductSerializerAll(top_products, many=True)
+            # Mettre les résultats dans le cache pendant 5 minutes
+            cache.set(cache_key, serializer.data, timeout=60 * 5)
+        else:
+            # Si les produits sont déjà en cache, les utiliser directement
+            serializer = ProductSerializerAll(top_products, many=True)
+        
+        # Retourner la réponse
         return Response(serializer.data)
 
 @method_decorator(cache_page(60 * 5), name='dispatch') 
