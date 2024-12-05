@@ -21,8 +21,10 @@ django-allauth==0.63.3
 django-core==1.4.1
 django-cors-headers==4.4.0
 django-extensions==3.2.3
+django-httpsiframecookiesetter==0.0.7
 django-iframetoolbox==0.2.1
 django-polymorphic==3.1.0
+django-redis==5.4.0
 django-render-block==0.10
 django-rest-framework==0.1.0
 django-templated-email==3.0.1
