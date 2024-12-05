@@ -142,8 +142,6 @@ def get_cart_session_user(request):
     cart = get_cart_for_anonymous_user(session_key)
     
     if cart:
-        print("su ",cart.items)
-        print(type(cart))
         cart_data = {
             "items": [
                 {
