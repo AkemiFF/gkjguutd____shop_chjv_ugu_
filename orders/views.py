@@ -119,8 +119,12 @@ class OrderDetailsView(APIView):
                 "name": item.product.name,
                 "price": float(item.price),
                 "quantity": item.quantity,
-                "image": item.product.image.url if hasattr(item.product, "image") else "/placeholder.svg?height=80&width=80",
-            }
+                "image": (
+                    item.product.images.first().image.url
+                    if item.product.images.exists()
+                    else "/placeholder.svg?height=80&width=80"
+                    ),    
+                 }
             for item in order.items.all()
         ]
 
