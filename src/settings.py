@@ -223,24 +223,24 @@ import ssl
 CELERY_BROKER_URL = CeleryAccess
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-# Configuration du backend des résultats pour Celery
 CELERY_RESULT_BACKEND = CeleryAccess
 
 # Configurer l'usage de SSL pour les connexions rediss://
 CELERY_BROKER_USE_SSL = {
-    'ssl_cert_reqs': ssl.CERT_REQUIRED,  # Remplacez par CERT_NONE si vous voulez ignorer la vérification des certificats
-    'ssl_keyfile': None,                 # Chemin vers le fichier de clé SSL si nécessaire
-    'ssl_certfile': None,                # Chemin vers le fichier de certificat SSL si nécessaire
-    'ssl_ca_certs': None,                # Chemin vers les autorités racines pour validation SSL
+    'ssl_cert_reqs': ssl.CERT_REQUIRED,
+    'ssl_keyfile': None,                 
+    'ssl_certfile': None,               
+    'ssl_ca_certs': None,               
 }
 
 # Options supplémentaires pour la gestion des connexions Redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'visibility_timeout': 3600, 
     'max_retries': 3,                   
     'retry_policy': {
-        'interval_start': 0,             # Délai avant la première tentative de reconnexion
-        'interval_step': 0.2,            # Incrément pour les tentatives suivantes
-        'interval_max': 0.5,             # Temps maximum entre les tentatives
+        'interval_start': 0,            
+        'interval_step': 0.2,            
+        'interval_max': 0.5,           
     },
 }
 
@@ -250,6 +250,7 @@ CACHES = {
     'LOCATION': CeleryAccess,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True, 
             'SOCKET_CONNECT_TIMEOUT': 5, 
             'SOCKET_TIMEOUT': 5,       
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
