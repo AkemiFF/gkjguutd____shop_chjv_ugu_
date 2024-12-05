@@ -1,13 +1,9 @@
-# views.py
-from django.core.cache import cache
-from django.db.models import Q, Sum
+
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from products.models import Product
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import Cart, CartItem
@@ -35,12 +31,7 @@ def get_cart(request):
         cart_key = f"cart_session_{session_key}"  # Clé pour utilisateur anonyme
         cart = get_cart_for_anonymous_user(session_key)
 
-    # Vérifier si le panier est déjà en cache
-    cached_cart_data = cache.get(cart_key)
 
-    if cached_cart_data:
-        # Si les données du panier sont en cache, les retourner
-        return Response(cached_cart_data, status=status.HTTP_200_OK)
 
     if cart:
         # Convertir le panier en format JSON
@@ -56,7 +47,6 @@ def get_cart(request):
             ]
         }
         # Mettre en cache les données du panier pendant 5 minutes (300 secondes)
-        cache.set(cart_key, cart_data, timeout=60 * 5)
 
         return Response(cart_data, status=status.HTTP_200_OK)
 
@@ -76,11 +66,6 @@ def get_cart_connected_user(request):
         cart_key = f"cart_session_{session_key}"
         cart = get_cart_for_anonymous_user(session_key)
 
-    # Vérifier si les données sont en cache
-    cached_cart_data = cache.get(cart_key)
-
-    if cached_cart_data:
-        return Response(cached_cart_data, status=status.HTTP_200_OK)
 
     if cart:
         cart_data = {
@@ -123,8 +108,6 @@ def get_cart_connected_user(request):
         cart_data["recommended_products"] = recommended_data
         cart_data["cart_id"] = cart.id
 
-        # Mettre en cache les données pendant 5 minutes
-        cache.set(cart_key, cart_data, timeout=60 * 5)
 
         return Response(cart_data, status=status.HTTP_200_OK)
 
@@ -224,13 +207,11 @@ def add_to_cart(request):
 
     # Création ou récupération du panier
     if request.user.is_authenticated:
-        cart_key = f"cart_user_{request.user.id}"
         cart, created = Cart.objects.get_or_create(user=request.user, defaults={'session': None})
     else:
         if not request.session.session_key:
             request.session.save()  
         session_key = request.session.session_key
-        cart_key = f"cart_session_{session_key}"
         cart, created = Cart.objects.get_or_create(session_id=session_key, user=None)
 
     # Ajouter ou mettre à jour l'élément dans le panier
@@ -240,24 +221,7 @@ def add_to_cart(request):
     else:
         cart_item.quantity = quantity
     cart_item.save()
-
-    # Mettre à jour le cache
-    cart_data = {
-        "items": [
-            {
-                "product_id": item.product.id,
-                "product_name": item.product.name,
-                "quantity": item.quantity,
-                "price": item.product.price,
-                "description": item.product.description,
-                "total_price": item.get_total_price(),
-                "image_url": item.product.images.first().image.url if item.product.images.exists() else None
-            }
-            for item in cart.items.all()
-        ]
-    }
-
-    # Mettre à jour les recommandations (optionnel si vous voulez les mettre en cache aussi)
+    
     product_ids_in_cart = [item.product.id for item in cart.items.all()]
     categories_in_cart = cart.items.values_list('product__category', flat=True).distinct()
 
@@ -280,11 +244,7 @@ def add_to_cart(request):
         for product in recommended_products
     ]
 
-    cart_data["recommended_products"] = recommended_data
-    cart_data["cart_id"] = cart.id
-
-    # Mettre en cache les données du panier pendant 5 minutes
-    cache.set(cart_key, cart_data, timeout=60 * 5)
+   
 
     return Response({"message": "Produit ajouté au panier."}, status=status.HTTP_201_CREATED)
 
@@ -307,26 +267,6 @@ def remove_from_cart(request, product_id):
         cart_item = CartItem.objects.get(cart=cart, product_id=product_id)
         cart_item.delete()
 
-        # Mettre à jour le cache après la suppression de l'élément
-        cached_cart_data = cache.get(cart_key)
-        if cached_cart_data:
-            # Si le panier est dans le cache, on le met à jour avec les nouvelles données
-            updated_cart_data = {
-                "items": [
-                    {
-                        "product_id": item.product.id,
-                        "product_name": item.product.name,
-                        "quantity": item.quantity,
-                        "price": item.product.price,
-                        "description": item.product.description,
-                        "total_price": item.get_total_price(),
-                        "image_url": item.product.images.first().image.url if item.product.images.exists() else None
-                    }
-                    for item in cart.items.all()
-                ]
-            }
-            cache.set(cart_key, updated_cart_data, timeout=60 * 5)  # Cache pour 5 minutes
-
         return Response({"message": "Product removed from cart."}, status=status.HTTP_204_NO_CONTENT)
     except CartItem.DoesNotExist:
         return Response({"message": "Product not found in cart."}, status=status.HTTP_404_NOT_FOUND)
@@ -343,11 +283,9 @@ def decrease_cart_item(request):
     try:
         # Vérifier si l'utilisateur est authentifié ou anonyme
         if request.user.is_authenticated:
-            cart_key = f"cart_user_{request.user.id}"
             cart = Cart.objects.get(user=request.user)
         else:            
             session_key = request.session.session_key
-            cart_key = f"cart_session_{session_key}"
             cart = Cart.objects.get(session_id=session_key, user=None)
 
         # Vérifier si l'élément existe dans le panier
@@ -363,24 +301,7 @@ def decrease_cart_item(request):
             message = "Le produit a été supprimé du panier."
 
         # Mettre à jour le cache après la modification du panier
-        cached_cart_data = cache.get(cart_key)
-        if cached_cart_data:
-            # Si le panier est dans le cache, on le met à jour avec les nouvelles données
-            updated_cart_data = {
-                "items": [
-                    {
-                        "product_id": item.product.id,
-                        "product_name": item.product.name,
-                        "quantity": item.quantity,
-                        "price": item.product.price,
-                        "description": item.product.description,
-                        "total_price": item.get_total_price(),
-                        "image_url": item.product.images.first().image.url if item.product.images.exists() else None
-                    }
-                    for item in cart.items.all()
-                ]
-            }
-            cache.set(cart_key, updated_cart_data, timeout=60 * 5)  # Cache pendant 5 minutes
+     
 
         return Response({"message": message}, status=status.HTTP_200_OK)
 
@@ -403,11 +324,9 @@ def remove_cart_item(request):
     try:
         # Récupérer le panier de l'utilisateur connecté ou anonyme
         if request.user.is_authenticated:
-            cart_key = f"cart_user_{request.user.id}"
             cart = Cart.objects.get(user=request.user)
         else:
             session_key = request.session.session_key
-            cart_key = f"cart_session_{session_key}"
             cart = Cart.objects.get(session_id=session_key, user=None)
 
         # Récupérer l'élément du panier correspondant au produit
@@ -415,25 +334,6 @@ def remove_cart_item(request):
 
         # Supprimer l'élément du panier
         cart_item.delete()
-
-        # Mettre à jour le cache après la suppression
-        cached_cart_data = cache.get(cart_key)
-        if cached_cart_data:
-            updated_cart_data = {
-                "items": [
-                    {
-                        "product_id": item.product.id,
-                        "product_name": item.product.name,
-                        "quantity": item.quantity,
-                        "price": item.product.price,
-                        "description": item.product.description,
-                        "total_price": item.get_total_price(),
-                        "image_url": item.product.images.first().image.url if item.product.images.exists() else None
-                    }
-                    for item in cart.items.all()
-                ]
-            }
-            cache.set(cart_key, updated_cart_data, timeout=60 * 5)  # Cache pendant 5 minutes
 
         return Response({"message": "Le produit a été supprimé du panier."}, status=status.HTTP_200_OK)
 
