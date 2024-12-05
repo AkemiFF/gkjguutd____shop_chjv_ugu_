@@ -1,5 +1,6 @@
 from cart.models import Cart
 from celery import app, shared_task
+from orders.models import Order
 
 from .services import *
 
@@ -49,6 +50,37 @@ def initiate_cart_payment_task(cart_id, backUrl, frontUrl):
 
         # Initier le paiement (appel à une API de paiement)
         # Remplacez `initiate_payment` par l'appel réel de l'API
+        payment_response = initiate_payment(payment_data)
+        return payment_response
+
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return {'error': str(e)}
+
+
+@shared_task
+def initiate_ref_payment_task(ref, backUrl, frontUrl):
+    import time
+    start_time = time.time()
+
+    try:
+        # Récupérer le panier à partir de l'ID
+        order = Order.objects.filter(ref=ref).prefetch_related('order_items__product').first()
+
+        if order is None:
+            return {'error': 'order not found'}
+
+        total_price = float(order.get_total_price())    
+
+        payment_data = {
+            'montant': total_price,
+            'reference': ref,
+            'panier': order.id,
+            'devise': "Euro",
+            'notif_url': f"{backUrl}/payments/webhook/",
+            'redirect_url': f"{frontUrl}/users/cart/order-confirmation"
+        }
+
         payment_response = initiate_payment(payment_data)
         return payment_response
 

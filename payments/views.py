@@ -200,10 +200,37 @@ async def init_cart_payment2(request):
 
             task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)
             
-            print(f"Cart query took {time.time() - start_time} seconds")
+         
 
             return JsonResponse({'task_id': task.id, 'message': 'Payment initiation started'}, status=202)
 
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+async def init_ref_payment(request):
+    """Expose l'API pour initier un paiement de manière asynchrone."""
+    if request.method == "POST":
+        try:
+            start_time = time.time()
+
+            # Charger le corps de la requête JSON
+            body = json.loads(request.body)
+            ref = body.get('ref')
+
+            # Vérifier si l'ID du panier est fourni
+            if not ref:
+                return JsonResponse({'error': 'Reference is required'}, status=400)
+
+            task = initiate_ref_payment_task.delay(ref, backUrl, frontUrl)         
+           
+            return JsonResponse({'task_id': task.id, 'message': 'Payment initiation started'}, status=202)
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)

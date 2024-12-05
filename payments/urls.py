@@ -11,6 +11,7 @@ urlpatterns = [
     path("check/<str:reference>/", CheckOrderPayment.as_view(), name="check_payment"),
     path("test/", init_test, name="init_test"),
     path("async-cart-pay/", init_cart_payment2, name="init_test"),
+    path("async-ref-pay/", init_ref_payment, name="init_test"),
     path("get-task-status/", get_task_status, name="get_task_status"),
     # path("api/response/pay", views.handle_payment_notification, name="handle_payment_notification"),
 ]
