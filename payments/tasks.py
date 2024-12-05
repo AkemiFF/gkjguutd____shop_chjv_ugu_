@@ -16,13 +16,9 @@ def test_task(data):
 
 @shared_task
 def initiate_cart_payment_task(cart_id, backUrl, frontUrl):
-    import time
-    start_time = time.time()
-
     try:
         # Récupérer le panier à partir de l'ID
         cart = Cart.objects.filter(id=cart_id).prefetch_related('items__product').first()
-        print(f"Cart query took {time.time() - start_time} seconds")
 
         if cart is None:
             return {'error': 'Cart not found'}
@@ -34,7 +30,6 @@ def initiate_cart_payment_task(cart_id, backUrl, frontUrl):
 
         # Calculer le prix total du panier et le convertir en float
         total_price = float(sum(item.get_total_price() for item in cart_items))
-        print(f"Total price calculation took {time.time() - start_time} seconds")
 
         user_id = cart.user.id if cart.user else 0
         ref = f"REF{cart.id}{user_id}T{str(total_price).replace('.', 'P')}"
@@ -60,9 +55,6 @@ def initiate_cart_payment_task(cart_id, backUrl, frontUrl):
 
 @shared_task
 def initiate_ref_payment_task(ref, backUrl, frontUrl):
-    import time
-    start_time = time.time()
-
     try:
         # Récupérer le panier à partir de l'ID
         order = Order.objects.filter(reference=ref).prefetch_related('items__product').first()
