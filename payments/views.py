@@ -4,6 +4,7 @@ import json
 import os
 import time
 
+from asgiref.sync import sync_to_async
 from cart.models import Cart
 from celery.result import AsyncResult
 from django.conf import settings
@@ -195,7 +196,9 @@ async def init_cart_payment2(request):
             # Vérifier si l'ID du panier est fourni
             if not cart_id:
                 return JsonResponse({'error': 'Cart ID is required'}, status=400)
-            cart = Cart.objects.filter(id=cart_id).first()
+            
+            cart = await sync_to_async(Cart.objects.filter(id=cart_id).first)()
+
             if not cart:
                 return JsonResponse({'error': 'Cart not found'}, status=404)
 
