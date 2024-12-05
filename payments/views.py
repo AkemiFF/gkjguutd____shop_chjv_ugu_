@@ -188,8 +188,6 @@ async def init_cart_payment2(request):
     """Expose l'API pour initier un paiement de manière asynchrone."""
     if request.method == "POST":
         try:
-            start_time = time.time()
-
             # Charger le corps de la requête JSON
             body = json.loads(request.body)
             cart_id = body.get('id')
@@ -197,13 +195,13 @@ async def init_cart_payment2(request):
             # Vérifier si l'ID du panier est fourni
             if not cart_id:
                 return JsonResponse({'error': 'Cart ID is required'}, status=400)
+            cart = Cart.objects.filter(id=cart_id).first()
+            if not cart:
+                return JsonResponse({'error': 'Cart not found'}, status=404)
 
-            task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)
-            
+            task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)         
          
-
             return JsonResponse({'task_id': task.id, 'message': 'Payment initiation started'}, status=202)
-
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
