@@ -3,6 +3,7 @@ import json
 
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from .models import *
 
@@ -66,6 +67,27 @@ class AddProductReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
 
         return ProductReview.objects.create(**validated_data)  
+    
+
+class AddProductReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReview
+        fields = ['product', 'rating', 'title', 'content']
+
+    def validate(self, data):
+        user = self.context['request'].user
+
+        # Vérifiez que l'utilisateur est authentifié
+        if not user or not user.is_authenticated:
+            raise ValidationError("You must be logged in to submit a review.")
+
+        product = data.get('product')
+        
+        # Vérification des doublons d'avis
+        if ProductReview.objects.filter(user=user, product=product).exists():
+            raise ValidationError("You have already reviewed this product.")
+
+        return data
     
 class ProductWithSpecSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)

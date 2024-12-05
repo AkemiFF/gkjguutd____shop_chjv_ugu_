@@ -228,39 +228,77 @@ class CategoryListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
+from django.core.cache import cache
+
+
 @method_decorator(cache_page(60 * 15), name='dispatch') 
 class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
     serializer_class = ProductWithSpecSerializer
     lookup_field = 'id'
-    
-    
+
+    def get_cache_key(self, product_id):
+        return f'product_detail_{product_id}'
+
     def retrieve(self, request, *args, **kwargs):
         # Récupérer le produit actuel
         product = self.get_object()
-        serializer = self.get_serializer(product)
+        cache_key = self.get_cache_key(product.id)
 
-        # Récupérer des produits similaires basés sur la catégorie
+        # Vérifier si les données sont déjà en cache
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        # Récupérer les produits similaires basés sur la catégorie
         similar_products = Product.objects.filter(category=product.category).exclude(id=product.id)[:4]
 
         # Sérialiser les produits similaires
         similar_serializer = ProductSerializerAll(similar_products, many=True)
 
+        # Sérialiser le produit
+        serializer = self.get_serializer(product)
+
         # Construire la réponse
-        return Response({
+        response_data = {
             'product': serializer.data,
             'similar_products': similar_serializer.data
-        })
-        
+        }
+
+        # Mettre en cache la réponse pour le produit
+        cache.set(cache_key, response_data, timeout=60 * 15)
+
+        return Response(response_data)
+
         
         
 class ProductReviewCreateView(generics.CreateAPIView):
     queryset = ProductReview.objects.all()
     permission_classes = [IsAuthenticated] 
     serializer_class = AddProductReviewSerializer
+
+    def handle_exception(self, exc):
+        # Gérer les erreurs de validation
+        if isinstance(exc, ValidationError):
+            return Response({"error": exc.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return super().handle_exception(exc)
     
 
     def perform_create(self, serializer):
+        user = self.request.user
+        product = serializer.validated_data.get('product')
 
-        serializer.save(user=self.request.user) 
+        # Vérifiez si l'utilisateur a déjà écrit un avis pour ce produit
+        if ProductReview.objects.filter(user=user, product=product).exists():
+            raise ValidationError("You have already reviewed this product.")
+        
+        # Sauvegarder l'avis
+        serializer.save(user=user)
+
+        # Invalider la cache de la vue ProductDetailView
+        cache_key = f'product_detail_{product.id}'
+        cache.delete(cache_key)  # Invalider la cache existante
+
+        # Retourner une réponse de succès
+        return Response({'message': 'Review added successfully.'}, status=status.HTTP_201_CREATED)
