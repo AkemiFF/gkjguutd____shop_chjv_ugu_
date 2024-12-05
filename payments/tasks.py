@@ -65,7 +65,7 @@ def initiate_ref_payment_task(ref, backUrl, frontUrl):
 
     try:
         # Récupérer le panier à partir de l'ID
-        order = Order.objects.filter(reference=ref).prefetch_related('order_items__product').first()
+        order = Order.objects.filter(reference=ref).prefetch_related('items__product').first()
 
         if order is None:
             return {'error': 'order not found'}
