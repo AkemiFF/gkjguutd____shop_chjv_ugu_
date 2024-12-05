@@ -5,6 +5,7 @@ import os
 import time
 
 from cart.models import Cart
+from celery.result import AsyncResult
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -198,13 +199,11 @@ async def init_cart_payment2(request):
                 return JsonResponse({'error': 'Cart ID is required'}, status=400)
 
             task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)
-
-            # Attendre la fin de la tâche
-            payment_response = task.get(timeout=60)
             
             print(f"Cart query took {time.time() - start_time} seconds")
 
-            return JsonResponse(payment_response)
+            return JsonResponse({'task_id': task.id, 'message': 'Payment initiation started'}, status=202)
+
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
@@ -213,3 +212,21 @@ async def init_cart_payment2(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+   
+
+@csrf_exempt
+def get_task_status(request):
+    task_id = request.GET.get('task_id')
+    if not task_id:
+        return JsonResponse({'error': 'Task ID is required'}, status=400)
+
+    # Récupérer l'état de la tâche
+    task_result = AsyncResult(task_id)
+    if task_result.state == 'SUCCESS':
+        print(task_result)
+        return JsonResponse({'state': task_result.state, 'result': task_result.result})
+    elif task_result.state == 'FAILURE':
+        return JsonResponse({'state': task_result.state, 'error': str(task_result.result)})
+    else:
+        return JsonResponse({'state': task_result.state})
