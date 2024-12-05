@@ -17,6 +17,16 @@ from users.models import Client
 from .serializers import *
 
 
+class ClearCacheView(APIView):
+    permission_classes = [IsAdminUser]  
+
+    def get(self, request):
+        try:
+            cache.clear()
+            return Response({"message": "Cache cleared successfully"}, status=200)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def dashboard_stats(request):

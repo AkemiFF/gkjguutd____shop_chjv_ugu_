@@ -19,6 +19,6 @@ urlpatterns = [
     path('contacts/', get_all_contacts, name='get_all_contacts'),
     path("top-selling-product/", TopSellingProductView.as_view(), name="top-selling-product"),
     path("recent-orders/", RecentOrdersView.as_view(), name="recent-orders"),
-
+    path('clear-cache/', ClearCacheView.as_view(), name='clear-cache'),
     # path('test/', AnalyticsDataView.as_view(), name='get_al'),
 ]
