@@ -14,7 +14,7 @@ from .models import Product
 from .serializers import *
 from .serializers import ProductSerializer
 
-
+CACHE_TTL = 60 * 5  
 class ProductDeleteAPIView(APIView):
     permission_classes = [IsAdminUser]
     
@@ -97,32 +97,60 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializerAll
     
 
+
 class ProductSearchView(APIView):
     permission_classes = [AllowAny]
+
     def get(self, request):
-        query = request.query_params.get('q', '')  # le terme de recherche
-        category = request.query_params.get('category')  # filtre par catégorie
-        min_price = request.query_params.get('min_price')  # filtre par prix minimum
-        max_price = request.query_params.get('max_price')  # filtre par prix maximum
+        query = request.query_params.get('q', '')  # Le terme de recherche
+        category = request.query_params.get('category')  # Filtre par catégorie
+        min_price = request.query_params.get('min_price')  # Filtre par prix minimum
+        max_price = request.query_params.get('max_price')  # Filtre par prix maximum
 
-        # Filtre de recherche avec Q pour combiner plusieurs critères
-        products = Product.objects.all()
-        
-        if query:
-            products = products.filter(
-                Q(name__icontains=query) | Q(description__icontains=query)
-            )
-        
-        if category:
-            products = products.filter(category__name__iexact=category)
-        
-        if min_price:
-            products = products.filter(price__gte=min_price)
-        
-        if max_price:
-            products = products.filter(price__lte=max_price)
+        # Générer une clé de cache dynamique basée sur les paramètres de la requête
+        cache_key = f"search:{query}:{category}:{min_price}:{max_price}"
+        products = cache.get(cache_key)
 
-        serializer = ProductSerializerAll(products, many=True)
+        if not products:
+            # Filtrer les produits de manière conditionnelle
+            products_queryset = Product.objects.all()
+
+            if query:
+                products_queryset = products_queryset.filter(
+                    Q(name__icontains=query) | Q(description__icontains=query)
+                )
+
+            if category:
+                products_queryset = products_queryset.filter(category__name__iexact=category)
+
+            if min_price:
+                products_queryset = products_queryset.filter(price__gte=min_price)
+
+            if max_price:
+                products_queryset = products_queryset.filter(price__lte=max_price)
+
+            # Utiliser select_related ou prefetch_related si nécessaire pour optimiser les relations
+            # Exemple : pour une relation ForeignKey ou ManyToMany
+            # products_queryset = products_queryset.select_related('category')
+
+            # Appliquer la pagination (optionnelle)
+            page_size = int(request.query_params.get('page_size', 10))  # Par défaut, 10 produits par page
+            page = int(request.query_params.get('page', 1))  # Numéro de page, par défaut 1
+            start = (page - 1) * page_size
+            end = page * page_size
+
+            # Appliquer le cache des résultats de la requête
+            products = products_queryset[start:end]
+
+            # Sérialiser les produits
+            serializer = ProductSerializerAll(products, many=True)
+
+            # Mettre en cache les résultats de la recherche pendant 5 minutes
+            cache.set(cache_key, serializer.data, timeout=CACHE_TTL)
+        else:
+            # Si les résultats sont en cache, les renvoyer directement
+            serializer = ProductSerializerAll(products, many=True)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 @method_decorator(cache_page(60 * 10), name='dispatch') 
