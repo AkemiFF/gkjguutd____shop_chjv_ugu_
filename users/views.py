@@ -3,6 +3,7 @@ from cart.models import Cart, CartItem
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import JsonResponse
 from rest_framework import status
@@ -21,7 +22,26 @@ class ClientListView(ListAPIView):
     permission_classes = [AllowAny]
     queryset = Client.objects.all()
     serializer_class = ClientWithOrdersSerializer
-    
+
+    def get(self, request, *args, **kwargs):
+        # Définir une clé de cache unique pour la liste des clients
+        cache_key = "client_list"
+
+        # Vérifier si les données sont en cache
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            # Si les données sont en cache, les renvoyer directement
+            return Response(cached_data)
+        
+        # Si les données ne sont pas en cache, les récupérer et mettre en cache
+        response = super().get(request, *args, **kwargs)
+        
+        # Mettre en cache les données pendant 5 minutes
+        cache.set(cache_key, response.data, timeout=60 * 5)
+        
+        return response
+
 
 class GetShippingAddressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -202,15 +222,31 @@ class LoginView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response({'error': 'Identifiants invalides'}, status=status.HTTP_401_UNAUTHORIZED)
-
+    
 class ClientInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         client = request.user  # Récupère l'utilisateur authentifié
-        serializer = ClientSerializer(client)
-        return Response(serializer.data)
+        
+        # Générer une clé de cache unique pour l'utilisateur
+        cache_key = f"client_info_{client.id}"
 
+        # Vérifier si les données sont en cache
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            # Si les données sont en cache, les renvoyer
+            return Response(cached_data)
+        
+        # Si les données ne sont pas en cache, les récupérer et mettre en cache
+        serializer = ClientSerializer(client)
+        client_data = serializer.data
+        
+        # Mettre en cache les données pendant 5 minutes
+        cache.set(cache_key, client_data, timeout=60 * 5)
+        
+        return Response(client_data)
 
 
 class UpdateShippingInfoView(APIView):
