@@ -56,7 +56,7 @@ class TopSellingProductsView(APIView):
             cache.set(cache_key, serializer.data, timeout=60 * 5)
         else:
             # Si les produits sont dans le cache, les renvoyer tels quels
-            serializer = ProductSerializerAll(top_products, many=True)
+             return Response(top_products)
 
         # Retourner la réponse
         return Response(serializer.data)
@@ -79,7 +79,7 @@ class RecommendedProductsView(APIView):
             cache.set(cache_key, serializer.data, timeout=60 * 5)
         else:
             # Si les produits sont déjà en cache, les utiliser directement
-            serializer = ProductSerializerAll(top_products, many=True)
+            return Response(top_products)
 
         return Response(serializer.data)
 
