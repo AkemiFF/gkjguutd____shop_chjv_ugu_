@@ -1,9 +1,7 @@
-# views.py
 
-# from API.analytics import get_analytics_data
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-# views.py
+from django.core.cache import cache
 from django.db.models import Count, F, Sum
 from django.utils import timezone
 from orders.models import *
@@ -165,13 +163,28 @@ def create_contact(request):
         return Response({"message": "Message envoyé avec succès."}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_all_contacts(request):
+    # Clé de cache unique pour la liste des contacts
+    cache_key = "all_contacts"
+
+    # Vérifier si les données sont en cache
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        # Si les données sont en cache, les renvoyer
+        return Response(cached_data, status=status.HTTP_200_OK)
+
+    # Si les données ne sont pas en cache, les récupérer depuis la base de données
     contacts = ContactUs.objects.all()
     serializer = ContactUsAllSerializer(contacts, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    # Mettre les données dans le cache pendant 5 minutes
+    cache.set(cache_key, serializer.data, timeout=60 * 5)
 
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # class AnalyticsDataView(APIView):
 #     permission_classes = [AllowAny]
