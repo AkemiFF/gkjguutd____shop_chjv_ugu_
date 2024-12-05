@@ -14,7 +14,7 @@ from .models import Product
 from .serializers import *
 from .serializers import ProductSerializer
 
-CACHE_TTL = 60 * 5  
+CACHE_TTL = 60 * 60
 class ProductDeleteAPIView(APIView):
     permission_classes = [IsAdminUser]
     
@@ -33,7 +33,7 @@ class ProductDeleteAPIView(APIView):
         )
 
 
-@method_decorator(cache_page(60 * 5), name='dispatch') 
+@method_decorator(cache_page(60 * 60 * 3), name='dispatch') 
 class TopSellingProductsView(APIView):
     permission_classes = [AllowAny]
 
@@ -53,7 +53,7 @@ class TopSellingProductsView(APIView):
             serializer = ProductSerializerAll(top_products, many=True)
 
             # Mettre en cache les résultats pendant 5 minutes
-            cache.set(cache_key, serializer.data, timeout=60 * 5)
+            cache.set(cache_key, serializer.data, timeout=60 * 60 * 3)
         else:
             # Si les produits sont dans le cache, les renvoyer tels quels
              return Response(top_products)
@@ -76,7 +76,7 @@ class RecommendedProductsView(APIView):
             )
             serializer = ProductSerializerAll(top_products, many=True)
             # Mettre les résultats dans le cache pendant 5 minutes
-            cache.set(cache_key, serializer.data, timeout=60 * 5)
+            cache.set(cache_key, serializer.data, timeout=60 * 60 * 3)
         else:
             # Si les produits sont déjà en cache, les utiliser directement
             return Response(top_products)
@@ -84,7 +84,7 @@ class RecommendedProductsView(APIView):
         return Response(serializer.data)
 
 
-@method_decorator(cache_page(60 * 5), name='dispatch') 
+@method_decorator(cache_page(60 * 60), name='dispatch') 
 class ProductListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
@@ -219,7 +219,7 @@ def create_product(request):
     print(serializer.errors)  # For debugging purposes
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@method_decorator(cache_page(60 * 5), name='dispatch') 
+@method_decorator(cache_page(60 * 15), name='dispatch') 
 class CategoryListView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
@@ -228,7 +228,7 @@ class CategoryListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
-@method_decorator(cache_page(60 * 5), name='dispatch') 
+@method_decorator(cache_page(60 * 15), name='dispatch') 
 class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
