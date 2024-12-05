@@ -1,11 +1,13 @@
 # views.py
+from django.core.cache import cache
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-# views.py
 from rest_framework.views import APIView
 
 from .models import Product
@@ -45,7 +47,7 @@ class TopSellingProductsView(APIView):
         return Response(serializer.data)
 
 
-
+@method_decorator(cache_page(60 * 5), name='dispatch') 
 class RecommendedProductsView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
@@ -59,11 +61,12 @@ class RecommendedProductsView(APIView):
         serializer = ProductSerializerAll(top_products, many=True)
         return Response(serializer.data)
 
-
+@method_decorator(cache_page(60 * 5), name='dispatch') 
 class ProductListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
     serializer_class = ProductSerializerAll
+    
 
 class ProductSearchView(APIView):
     permission_classes = [AllowAny]
@@ -93,7 +96,7 @@ class ProductSearchView(APIView):
         serializer = ProductSerializerAll(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+@method_decorator(cache_page(60 * 10), name='dispatch') 
 class ProductAdminListView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -164,6 +167,8 @@ def create_product(request):
     
     print(serializer.errors)  # For debugging purposes
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@method_decorator(cache_page(60 * 5), name='dispatch') 
 class CategoryListView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
@@ -172,7 +177,7 @@ class CategoryListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
-
+@method_decorator(cache_page(60 * 5), name='dispatch') 
 class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
@@ -201,9 +206,10 @@ class ProductDetailView(generics.RetrieveAPIView):
         
 class ProductReviewCreateView(generics.CreateAPIView):
     queryset = ProductReview.objects.all()
-    serializer_class = AddProductReviewSerializer
     permission_classes = [IsAuthenticated] 
+    serializer_class = AddProductReviewSerializer
+    
 
     def perform_create(self, serializer):
-        # Associer automatiquement l'utilisateur authentifié à la critique
+
         serializer.save(user=self.request.user) 

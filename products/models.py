@@ -69,7 +69,7 @@ class ProductImage(models.Model):
 class ProductReview(models.Model):
     product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
-    rating = models.PositiveIntegerField(default=1) 
+    rating = models.PositiveIntegerField(default=5) 
     title = models.CharField(max_length=255)
     content = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
