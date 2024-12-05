@@ -17,22 +17,9 @@ from .utils import get_cart_for_anonymous_user
 def get_cart_for_anonymous_user(session_key):
     """Fonction utilitaire pour obtenir le panier d'un utilisateur anonyme basé sur la session, avec cache."""
     if not session_key:
-        return None
+        return None 
 
-    # Générer une clé de cache unique pour chaque session d'utilisateur anonyme
-    cart_key = f"cart_session_{session_key}"
-
-    # Vérifier si le panier est en cache
-    cart = cache.get(cart_key)
-
-    if not cart:
-        # Si le panier n'est pas en cache, le récupérer depuis la base de données
-        cart = Cart.objects.filter(session_id=session_key, user=None).first()
-        
-        # Si un panier est trouvé, le mettre en cache pendant 5 minutes
-        if cart:
-            cache.set(cart_key, cart, timeout=60 * 5)
-
+    cart = Cart.objects.filter(session_id=session_key, user=None).first()
     return cart
 
 @api_view(['GET'])
@@ -153,8 +140,10 @@ def get_cart_session_user(request):
    
     session_key = request.session.session_key or request.session.save()
     cart = get_cart_for_anonymous_user(session_key)
-    print(session_key)
+    
     if cart:
+        print("su ",cart.items)
+        print(type(cart))
         cart_data = {
             "items": [
                 {
