@@ -60,7 +60,27 @@ class TopSellingProductsView(APIView):
 
         # Retourner la réponse
         return Response(serializer.data)
+@method_decorator(cache_page(60 * 5), name='dispatch') 
+class RecommendedProductsView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        cache_key = 'recommended_products'
+        
+        top_products = cache.get(cache_key)
+        if not top_products:
+            top_products = (
+                Product.objects
+                .annotate(total_reviews=Count('reviews'))  # Compter le nombre d'avis
+                .order_by('-total_reviews')[:4]  # Trier par le nombre d'avis, puis prendre les 4 premiers
+            )
+            serializer = ProductSerializerAll(top_products, many=True)
+            # Mettre les résultats dans le cache pendant 5 minutes
+            cache.set(cache_key, serializer.data, timeout=60 * 5)
+        else:
+            # Si les produits sont déjà en cache, les utiliser directement
+            serializer = ProductSerializerAll(top_products, many=True)
 
+        return Response(serializer.data)
 
 class RecommendedProductsView(APIView):
     permission_classes = [AllowAny]

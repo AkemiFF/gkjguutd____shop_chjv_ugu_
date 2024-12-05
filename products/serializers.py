@@ -20,7 +20,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['image',]
 
     def get_image(self, obj):
-        # Vérifiez si obj est bien l'instance du modèle, et non un dict
+        print(obj.image)
         if isinstance(obj, ProductImage):
             return f"{settings.MEDIA_URL}{obj.image.name}"
         return None
