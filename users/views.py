@@ -69,11 +69,24 @@ class ClientOrderCreateView(APIView):
 
     def post(self, request):
         serializer = ClientOrderCreateSerializer(data=request.data)
+        email = request.data.get('email')
+        
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"error": "Un utilisateur avec cet email existe déjà."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+         
+
+        raw_password = User.objects.make_random_password()
+        hashed_password = make_password(raw_password)  
+
+        request.data['password'] = hashed_password
+        
         if serializer.is_valid():
-            # Sauvegarde du client
             client = serializer.save()
             
-            res = send_email_password(client.email, client.password)
+            res = send_email_password(client.email, raw_password)
             if res.status_code != 200:
                 return Response({"error": "Une erreur s'est produite lors de l'envoi de l'email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
