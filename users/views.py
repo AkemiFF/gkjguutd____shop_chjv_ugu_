@@ -4,8 +4,9 @@ from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.cache import cache
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView
@@ -15,6 +16,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import *
+from .models import Client
 from .serializers import *
 
 
@@ -77,11 +79,9 @@ class ClientOrderCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
          
-
         raw_password = User.objects.make_random_password()
-        hashed_password = make_password(raw_password)  
 
-        request.data['password'] = hashed_password
+        request.data['password'] = raw_password 
         
         if serializer.is_valid():
             client = serializer.save()
@@ -134,14 +134,6 @@ class ClientCreateView(APIView):
             return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-from django.core.mail import EmailMessage
-from django.template.loader import render_to_string
-from rest_framework import status
-from rest_framework.response import Response
-
-from .models import Client
 
 
 def send_email_password(email, password):
