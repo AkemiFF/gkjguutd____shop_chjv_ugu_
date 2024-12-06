@@ -13,6 +13,7 @@ urlpatterns = [
     path('update-shipping-info/', UpdateShippingInfoView.as_view(), name='update-shipping-info'),
     path('shipping-info/', GetShippingAddressView.as_view(), name='shipping-info'),
     path('clients/', ClientListView.as_view(), name='client-list'),
+    path('test/', SendPasswordResetEmailView.as_view(), name='emailpass'),
     path('client/change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('forgot-password/', forgot_password, name='forgot_password'),
     path('verify-reset-code/', verify_reset_code, name='verify-reset-code'),

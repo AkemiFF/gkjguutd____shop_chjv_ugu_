@@ -72,8 +72,12 @@ class ClientOrderCreateView(APIView):
         if serializer.is_valid():
             # Sauvegarde du client
             client = serializer.save()
+            
+            res = send_email_password(client.email, client.password)
+            if res.status_code != 200:
+                return Response({"error": "Une erreur s'est produite lors de l'envoi de l'email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Lier le panier de session à l'utilisateur créé
+            
             session_key = request.session.session_key
             
             if session_key:
@@ -88,7 +92,7 @@ class ClientOrderCreateView(APIView):
                 
 
             refresh = RefreshToken.for_user(client)
-
+            
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -118,6 +122,50 @@ class ClientCreateView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from rest_framework import status
+from rest_framework.response import Response
+
+from .models import Client
+
+
+def send_email_password(email, password):
+    try:
+        # Préparer le contexte pour le template
+        context = {
+            'password': password,
+        }
+        html_content = render_to_string('email-pass.html', context)
+
+        # Créer et envoyer l'email
+        email_message = EmailMessage(
+            subject='Votre mot de passe',
+            body=html_content,
+            from_email='noreply@shoplg.com',
+            to=[email],
+        )
+        email_message.content_subtype = 'html'  # Spécifie que le corps est en HTML
+        email_message.send(fail_silently=False)
+
+        # Retourner une réponse de succès
+        return Response({"message": "Mot de passe envoyé par e-mail"}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        # Gérer les erreurs imprévues
+        return Response({"error": f"Erreur lors de l'envoi de l'email : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SendPasswordResetEmailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        email = "mirado.akemi@gmail.com"
+        password = "Fuuuuuuuu**ck"
+        res = send_email_password(email,password)
+        return res
+        
 def send_email_code(email):
     try:
             user = Client.objects.get(email=email)
