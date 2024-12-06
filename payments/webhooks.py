@@ -31,9 +31,11 @@ def handle_payment_notification(request):
                 if payload_json.get('etat') == 'SUCCESS':
                     try:
                         ref = payload_json.get('reference')
+                        print(f"current reference : {ref}")
               
                         order = Order.objects.get(reference=ref)
-                        
+                        print(f"Order for ref {ref} is :  {order}")
+
                         order.is_paid = True
                         
                         order.save()
