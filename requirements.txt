@@ -80,7 +80,7 @@ tqdm==4.66.4
 typing_extensions==4.12.2
 tzdata==2024.1
 ua-parser==1.0.0
-ua-parser-builtins==0.19.0.dev30
+ua-parser-builtins==0.18.0.post1
 uritemplate==4.1.1
 urllib3==2.2.2
 user-agents==2.2.0
