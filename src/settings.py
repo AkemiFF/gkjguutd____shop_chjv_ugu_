@@ -236,11 +236,11 @@ CELERY_BROKER_USE_SSL = {
 # Options supplémentaires pour la gestion des connexions Redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     'visibility_timeout': 3600, 
-    'max_retries': 3,                   
+    'max_retries': 10,                   
     'retry_policy': {
         'interval_start': 0,            
         'interval_step': 0.2,            
-        'interval_max': 0.5,           
+        'interval_max': 5,           
     },
 }
 
