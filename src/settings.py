@@ -217,13 +217,15 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
-import ssl
 
-# Configuration du broker pour Celery
-CELERY_BROKER_URL = CeleryAccess
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_RESULT_BACKEND = CeleryAccess
+CELERY_BROKER_URL = CeleryAccess
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False  
+
+
 
 # Configurer l'usage de SSL pour les connexions rediss://
 CELERY_BROKER_USE_SSL = {
@@ -240,9 +242,12 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
     'retry_policy': {
         'interval_start': 0,            
         'interval_step': 0.2,            
-        'interval_max': 5,           
+        'interval_max': 15,           
     },
+    'socket_timeout': 5,
 }
+
+CELERYD_POOL_RESTARTS = True
 
 CACHES = {
     'default': {
