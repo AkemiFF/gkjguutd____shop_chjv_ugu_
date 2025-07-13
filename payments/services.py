@@ -1,65 +1,49 @@
+# services.py
 import os
 
-import requests
-from django.http import JsonResponse
-from dotenv import load_dotenv
+import stripe
+from django.conf import settings
 
-load_dotenv()
-endpoint = os.getenv("VANILLAPAY_URL")
-# endpoint ='https://api.vanilla-pay.net'
-def generate_token():
-    """Appelle l'API Vanilla Pay pour générer un token."""
-    url = f"{endpoint}/webpayment/token"
-    headers = {
-        "Accept": "*/*",
-        "Client-Id": os.getenv("CLIENT_ID"),
-        "Client-Secret": os.getenv("CLIENT_SECRET"),
-        "VPI-Version": "2023-01-12",
+stripe.api_key = settings.STRIPE_SECRET_KEY
+print(f"Stripe API Key: {stripe.api_key}")
+
+def create_payment_intent(amount_eur, reference, metadata=None, return_url=None):
+    """
+    Crée un PaymentIntent Stripe en EUR et renvoie le client_secret.
+    - amount_eur: montant en euros (float ou Decimal)
+    - reference: identifiant unique de la commande/panier
+    - metadata: dict de métadonnées à stocker
+    - return_url: URL de redirection après paiement (pour 3DS)
+    """
+    # Stripe attend le montant en cents
+    amount_cents = int(amount_eur * 100)
+    params = {
+        'amount': amount_cents,
+        'currency': 'eur',
+        'metadata': {
+            'reference': reference,
+            **(metadata or {}),
+        }
     }
-    response = requests.get(url, headers=headers)
-    return response.json()
+    # Si vous utilisez Stripe Checkout Session
+    if return_url:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'eur',
+                    'product_data': {'name': f'Order {reference}'},
+                    'unit_amount': amount_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=return_url + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=return_url + '?canceled=true',
+            metadata={'reference': reference},
+        )
+        return {'checkout_url': session.url, 'id': session.id, 'reference': reference}
 
-
-
-def initiate_payment(payload):
-    """Appelle l'API Vanilla Pay pour initier un paiement."""
-    url = f"{endpoint}/webpayment/initiate"
-    
-    # Générer le token
-    token_data = generate_token()
-    
-    # Vérifier si la génération du token a échoué
-    if isinstance(token_data, dict) and "error" in token_data:
-        return {'error': 'Failed to initiate payment', 'details': token_data['error']}
-
-    # Récupérer le token
-    data = token_data.get("Data")
-    token = data.get("Token")
-    
-    if not token:
-        return {'error': 'Token not found in response'}
-
-    headers = {
-        "Accept": "*/*",
-        "Authorization": f"{token}",
-        "VPI-Version": "2023-01-12",
-    }
-
-    try:
-        # Faire la requête POST à l'API
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status() 
-        res =response.json()
-        
-        # res['reference'] = f"REF{payload['cart_id']}{payload['user_id']}T{str(payload['total_price']).replace('.', 'P')}"
-        res['reference'] = payload.get("reference")
-
-        # Retourner la réponse JSON de l'API
-        return res
-
-    except requests.exceptions.HTTPError as http_err:
-        return {'error': 'HTTP error occurred', 'details': str(http_err)}
-    except requests.exceptions.RequestException as req_err:
-        return {'error': 'Request exception occurred', 'details': str(req_err)}
-    except Exception as e:
-        return {'error': 'An unexpected error occurred', 'details': str(e)}
+    # Sinon, PaymentIntent classique
+    intent = stripe.PaymentIntent.create(**params)
+    return {'client_secret': intent.client_secret, 'id': intent.id}
