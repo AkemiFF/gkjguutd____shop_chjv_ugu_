@@ -1,81 +1,42 @@
+import stripe
 from cart.models import Cart
-from celery import app, shared_task
+from celery import shared_task
+from django.conf import settings
 from orders.models import Order
 
-from .services import *
+from .services import create_payment_intent
 
 
 @shared_task
-def test_task(data):
-    # Logique de la tâche
-    print(f"Received data: {data}")
-    return {"status": "success"}
+def initiate_cart_payment_task(cart_id, frontUrl):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
 
+    cart = Cart.objects.filter(id=cart_id).prefetch_related('items__product').first()
+    if not cart:
+        return {'error': 'Cart not found'}
+    print(frontUrl)
+    total_price = float(sum(item.get_total_price() for item in cart.items.all()))
+    user_id = cart.user.id if cart.user else 0
+    reference = f"REF{cart.id}{user_id}T{str(total_price).replace('.', 'P')}"
 
-
-
-@shared_task
-def initiate_cart_payment_task(cart_id, backUrl, frontUrl):
-    try:
-        # Récupérer le panier à partir de l'ID
-        cart = Cart.objects.filter(id=cart_id).prefetch_related('items__product').first()
-
-        if cart is None:
-            return {'error': 'Cart not found'}
-
-        # Récupérer les éléments du panier
-        cart_items = cart.items.all()
-        if not cart_items:
-            return {'error': 'Cart is empty'}
-
-        # Calculer le prix total du panier et le convertir en float
-        total_price = float(sum(item.get_total_price() for item in cart_items))
-
-        user_id = cart.user.id if cart.user else 0
-        ref = f"REF{cart.id}{user_id}T{str(total_price).replace('.', 'P')}"
-
-        payment_data = {
-            'montant': total_price,
-            'reference': ref,
-            'panier': cart.id,
-            'devise': "Euro",
-            'notif_url': f"{backUrl}/payments/webhook/",
-            'redirect_url': f"{frontUrl}/users/cart/order-confirmation"
-        }
-
-        # Initier le paiement (appel à une API de paiement)
-        # Remplacez `initiate_payment` par l'appel réel de l'API
-        payment_response = initiate_payment(payment_data)
-        return payment_response
-
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return {'error': str(e)}
+    # Créer PaymentIntent ou Checkout
+    return create_payment_intent(
+        amount_eur=total_price,
+        reference=reference,
+        return_url=f"{frontUrl}/users/cart/order-confirmation"
+    )
 
 
 @shared_task
-def initiate_ref_payment_task(ref, backUrl, frontUrl):
-    try:
-        # Récupérer le panier à partir de l'ID
-        order = Order.objects.filter(reference=ref).prefetch_related('items__product').first()
+def initiate_ref_payment_task(ref, frontUrl):
+    order = Order.objects.filter(reference=ref).prefetch_related('items__product').first()
+    if not order:
+        return {'error': 'Order not found'}
 
-        if order is None:
-            return {'error': 'order not found'}
-
-        total_price = float(order.get_total_price())    
-
-        payment_data = {
-            'montant': total_price,
-            'reference': ref,
-            'panier': order.id,
-            'devise': "Euro",
-            'notif_url': f"{backUrl}/payments/webhook/",
-            'redirect_url': f"{frontUrl}/users/cart/order-confirmation"
-        }
-
-        payment_response = initiate_payment(payment_data)
-        return payment_response
-
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return {'error': str(e)}
+    total_price = float(order.get_total_price())
+    result = create_payment_intent(
+        amount_eur=total_price,
+        reference=ref,
+        return_url=f"{frontUrl}/orders/{ref}/confirmation"
+    )
+    return result
