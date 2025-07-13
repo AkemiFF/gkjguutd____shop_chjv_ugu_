@@ -79,7 +79,7 @@ class ClientOrderCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
          
-        raw_password = User.objects.make_random_password()
+        raw_password = User.make_random_password()
 
         request.data['password'] = raw_password 
         
