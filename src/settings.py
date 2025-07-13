@@ -29,7 +29,6 @@ if DEBUG:
 else:
     CeleryAccess = config('CELERY_ACCESS')
 
-print(f"Celery Access: {CeleryAccess}")
 # Application definition
 
 INSTALLED_APPS = [

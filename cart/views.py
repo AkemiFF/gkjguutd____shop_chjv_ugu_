@@ -178,7 +178,6 @@ def test_session(request):
     if not request.session.session_key:
         request.session.save()  
 
-    print(request.session.session_key)
     return Response({"message": "Produit ajouté au panier."}, status=status.HTTP_201_CREATED)
 
 

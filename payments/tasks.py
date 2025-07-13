@@ -14,7 +14,7 @@ def initiate_cart_payment_task(cart_id, frontUrl):
     cart = Cart.objects.filter(id=cart_id).prefetch_related('items__product').first()
     if not cart:
         return {'error': 'Cart not found'}
-    print(frontUrl)
+   
     total_price = float(sum(item.get_total_price() for item in cart.items.all()))
     user_id = cart.user.id if cart.user else 0
     reference = f"REF{cart.id}{user_id}T{str(total_price).replace('.', 'P')}"
