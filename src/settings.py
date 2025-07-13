@@ -6,11 +6,10 @@ from pathlib import Path
 
 from decouple import config
 
-CeleryAccess = config('CELERY_ACCESS')
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY =config('DJANGO_SECRET_KEY')
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
 
 DEBUG = config('DEBUG')
 
@@ -22,10 +21,15 @@ ALLOWED_POINT = [
     "https://shoplg.online",
     "https://www.shoplg.online",
     "http://localhost:8000",
+    "http://localhost:3000",
     "https://myshoplg-xkia.onrender.com",
 ]
+if DEBUG:
+    CeleryAccess = "redis://localhost:6379/0"
+else:
+    CeleryAccess = config('CELERY_ACCESS')
 
-
+print(f"Celery Access: {CeleryAccess}")
 # Application definition
 
 INSTALLED_APPS = [
@@ -219,22 +223,18 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
-
-CELERY_RESULT_BACKEND = CeleryAccess
 CELERY_BROKER_URL = CeleryAccess
+CELERY_RESULT_BACKEND = CeleryAccess
+
+CELERY_BROKER_USE_SSL = None
+CELERY_REDIS_BACKEND_USE_SSL = None
 
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False  
 
 
 
-# Configurer l'usage de SSL pour les connexions rediss://
-CELERY_BROKER_USE_SSL = {
-    'ssl_cert_reqs': ssl.CERT_REQUIRED,
-    'ssl_keyfile': None,                 
-    'ssl_certfile': None,               
-    'ssl_ca_certs': None,               
-}
+
 
 # Options supplémentaires pour la gestion des connexions Redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {
