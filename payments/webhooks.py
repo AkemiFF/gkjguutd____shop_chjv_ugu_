@@ -30,14 +30,15 @@ def handle_payment_notification(request):
         session = event['data']['object']
         reference = session['id']
         print(f"Session completed for reference: {reference}")
-  
-
-        Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
+        order = Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
+        
+        print(f"Order : {order}")
     elif event['type'] == 'payment_intent.succeeded':
         intent = event['data']['object']
         reference = intent['id']
         print(f"Session completed for reference: {reference}")
         
-        Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
-
+        order = Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
+        print(f"Order : {order}")
+     
     return HttpResponse(status=200)
