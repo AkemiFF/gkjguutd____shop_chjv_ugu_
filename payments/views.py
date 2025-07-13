@@ -7,6 +7,7 @@ import time
 from asgiref.sync import sync_to_async
 from cart.models import Cart
 from celery.result import AsyncResult
+from decouple import config
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -16,13 +17,39 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .services import generate_token, initiate_payment
+from .services import create_payment_intent
 from .tasks import *
 
-frontUrl = os.getenv("FROND_URL")
-backUrl = os.getenv("BACK_URL")
+frontUrl = config("FROND_URL")
+backUrl = config("BACK_URL")
 # frontUrl = 'https://shoplg.online'
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .services import create_payment_intent
+
+
+@csrf_exempt
+def get_stripe_client_secret(request):
+    data = json.loads(request.body)
+    amount = data.get('amount')
+    reference = data.get('reference')
+    intent = create_payment_intent(amount_eur=amount, reference=reference)
+    return JsonResponse(intent)
+
+@csrf_exempt
+def create_checkout_session(request):
+    data = json.loads(request.body)
+    amount = data.get('amount')
+    reference = data.get('reference')
+    frontUrl = data.get('frontUrl')
+    session = create_payment_intent(
+        amount_eur=amount,
+        reference=reference,
+        return_url=f"{frontUrl}/success"
+    )
+    return JsonResponse(session)
 
 class CheckOrderPayment(APIView):
     permission_classes = [AllowAny]
@@ -45,10 +72,7 @@ class CheckOrderPayment(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def get_token(request):
-    """Expose l'API pour récupérer un token."""
-    token_data = generate_token()  # Appelle la fonction utilitaire
-    return JsonResponse(token_data)
+
 
 @csrf_exempt
 def init_payment(request):
@@ -57,7 +81,7 @@ def init_payment(request):
         try:
             # Charger le corps de la requête JSON
             body = json.loads(request.body)
-            payment_data = initiate_payment(body)
+            payment_data = create_payment_intent(body)
             return JsonResponse(payment_data)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
@@ -110,7 +134,7 @@ def init_cart_payment(request):
             }
 
             # Initier le paiement
-            payment_data = initiate_payment(paymentData)
+            payment_data = create_payment_intent(paymentData)
             return JsonResponse(payment_data)
 
         except json.JSONDecodeError:
@@ -123,9 +147,6 @@ def init_cart_payment(request):
 
 
 
-def init_test(request):
-    test_task.delay("we are we are we are we are we are we are we are we are we")
-    return JsonResponse({"message": "Payment initiation started"})
     
 @csrf_exempt  
 def handle_payment_notification_test(request):
@@ -185,25 +206,19 @@ def handle_payment_notification_test(request):
 
 
 @csrf_exempt
-async def init_cart_payment2(request):
-    """Expose l'API pour initier un paiement de manière asynchrone."""
+def init_cart_payment_stripe(request):
     if request.method == "POST":
         try:
-            # Charger le corps de la requête JSON
             body = json.loads(request.body)
             cart_id = body.get('id')
-
-            # Vérifier si l'ID du panier est fourni
             if not cart_id:
                 return JsonResponse({'error': 'Cart ID is required'}, status=400)
-            
-            cart = await sync_to_async(Cart.objects.filter(id=cart_id).first)()
 
+            cart = Cart.objects.filter(id=cart_id).first()
             if not cart:
                 return JsonResponse({'error': 'Cart not found'}, status=404)
 
-            task = initiate_cart_payment_task.delay(cart_id, backUrl, frontUrl)         
-         
+            task = initiate_cart_payment_task.delay(cart_id, frontUrl)
             return JsonResponse({'task_id': task.id, 'message': 'Payment initiation started'}, status=202)
 
         except json.JSONDecodeError:
