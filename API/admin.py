@@ -38,7 +38,7 @@ from orders.models import Order, OrderItem
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("user", "created_at", "updated_at", "status")
+    list_display = ("user", "created_at", "reference","updated_at", "status")
     search_fields = ("user__username", "status")
 
 
