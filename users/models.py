@@ -28,6 +28,10 @@ class Client(AbstractUser):
         expiration_time = self.verification_code_sent_at + timedelta(minutes=10)
         return timezone.now() <= expiration_time
     
+    def make_random_password(length=8):
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+        return ''.join(random.choices(characters, k=length))
+    
     
 class ShippingAddress(models.Model):
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shipping_addresses')
