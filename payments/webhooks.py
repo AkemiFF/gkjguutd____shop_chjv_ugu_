@@ -1,53 +1,43 @@
-import hashlib
-import hmac
-import json
 import os
 
-from django.http import JsonResponse
+import stripe
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from dotenv import load_dotenv
 from orders.models import Order
 
-
-def verify_signature(secret, payload, signature):
-    """Vérifie l'authenticité de la notification."""
-    computed_hash = hmac.new(
-        secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
-    ).hexdigest().upper()
-
-    return computed_hash == signature
+load_dotenv()
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 @csrf_exempt
 def handle_payment_notification(request):
-    """Traite les notifications de paiement de Vanilla Pay."""
-    if request.method == "POST":
-        secret = os.getenv("KEY_SECRET")
-        signature = request.headers.get("VPI-Signature")
-        payload = request.body.decode("utf-8")
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+    if not endpoint_secret:
+        return HttpResponse("Webhook secret not configured", status=500)
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    # Gérer l'événement
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        reference = session['id']
+        print(f"Session completed for reference: {reference}")
+  
+
+        Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
+    elif event['type'] == 'payment_intent.succeeded':
+        intent = event['data']['object']
+        reference = intent['id']
+        print(f"Session completed for reference: {reference}")
         
-        if verify_signature(secret, payload, signature.upper()):
-            try:
-                payload_json = json.loads(payload)
-     
-                if payload_json.get('etat') == 'SUCCESS':
-                    try:
-                        ref = payload_json.get('reference')
-                        print(f"current reference : {ref}")
-              
-                        order = Order.objects.get(reference=ref)
-                        print(f"Order for ref {ref} is :  {order}")
+        Order.objects.filter(reference=reference).update(status='pending', is_paid=True)
 
-                        order.is_paid = True
-                        
-                        order.save()
-                        
-
-                    except Order.DoesNotExist:
-                        print("La commande avec cette référence n'existe pas.")
-                    except Exception as e:
-                        print(f"Une erreur s'est produite : {e}")
-                    
-            except json.JSONDecodeError as e:
-                print(f"Erreur lors de la conversion du payload : {e}")
-            return JsonResponse({"status": "valid"}, status=200)
-
-        return JsonResponse({"status": "invalid"}, status=400)
+    return HttpResponse(status=200)
