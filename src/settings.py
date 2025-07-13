@@ -22,6 +22,7 @@ ALLOWED_POINT = [
     "https://shoplg.online",
     "https://www.shoplg.online",
     "http://localhost:8000",
+    "https://myshoplg-xkia.onrender.com/",
 ]
 
 
